@@ -1,35 +1,31 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const config = require('./config');
+(async function() {
+    const express = require('express');
+    const path = require('path');
+    const cors = require('cors');
+    const config = require('./config');
+    const database = require('./database');
 
-app = express();
+    await database.connect();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({extended: false}));
-// app.use(express.static(config.clientBuildPath));
+    app = express();
 
-app.get('/', function(req, res) {
-    console.log('works/get');
-    res.sendFile(config.indexHTMLPath);
-});
+    app.use(cors());
+    app.use(express.json());
+    app.use(express.urlencoded({extended: false}));
 
-app.get('*', function(req, res) {
-    console.log('works/c');
-    res.sendFile(path.join(config.clientBuildPath, req.url));
-});
+    // CORS OPTIONS request handling
 
-app.post('/signUp', function(req, res) {
-    console.log('works/signup');
-    console.log(req.body);
-    res.send({'hi': 'hi'});
-});
+    app.use('/login', require('./routes/login'));
 
-app.post('*', function(req, res) {
-    console.log('works/signup');
-    console.log(req.body);
-    res.send({'hi': 'hi'});
-});
+    app.options('*');
 
-app.listen(config.port, console.log(`Server running on port ${config.port}.`));
+    app.get('/', function(req, res) {
+        res.sendFile(config.indexHTMLPath);
+    });
+
+    app.get('*', function(req, res) {
+        res.sendFile(path.join(config.clientBuildPath, req.url));
+    });
+
+    app.listen(config.port, console.log(`Server running on port ${config.port}.`));
+})();

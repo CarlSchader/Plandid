@@ -5,7 +5,7 @@ import {
   Route
 } from 'react-router-dom';
 
-import Landing from './components/Landing';
+import Login from './components/Login';
 // import logo from './logo.svg';
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './App.css';
@@ -16,7 +16,7 @@ function App() {
       <Router>
         <Switch>
           <Route exact path ="/">
-            <Landing />
+            <Login />
           </Route>
         </Switch>
       </Router>

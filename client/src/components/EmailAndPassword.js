@@ -42,7 +42,7 @@ function EmailAndPassword({passwordMinLength= 8, handleSubmit= function(email, p
     }
 
     return (
-        <Form onSubmit={function() {handleSubmit(email, password)}}>
+        <form>
             <Form.Group controlId="formBasicEmail">
                 <Form.Label>Email address</Form.Label>
                 <Form.Control type="email" placeholder="Enter email" value={email} onChange={handleEmailChange} isInvalid={email.length !== 0 && !emailValid()} />
@@ -54,10 +54,10 @@ function EmailAndPassword({passwordMinLength= 8, handleSubmit= function(email, p
                 <Form.Control type="password" placeholder="Password" value={password} onChange={handlePasswordChange} isInvalid={password.length !== 0 && !passwordValid()}/>
                 {PasswordErrorJSX}
             </Form.Group>
-            <Button variant="primary" type="submit" disabled={!emailValid() || !passwordValid()}>
+            <Button onClick={function() {handleSubmit(email, password)}} variant="primary" type="submit" disabled={!emailValid() || !passwordValid()}>
                 {buttonTitle}
             </Button>
-        </Form>
+        </form>
     );
 }
 
