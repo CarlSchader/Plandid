@@ -7,8 +7,8 @@ import config from '../config';
 function Login() {
     function createSubmitHandler(clientUrl) {
         return async function submitHandler(email, password) {
-            let response = await axios.post(clientUrl, {'email': email, 'password': password}, {headers: {'content-type': 'text/json'}, baseURL: config.url});
-            console.log(response);
+            let response = await axios.post(clientUrl, {'email': email, 'password': password}, {baseURL: config.url});
+            console.log(response.json());
         }
     }
 

@@ -1,3 +1,3 @@
 export default {
-    url: 'http://bytespace.io'
+    url: 'http://localhost:8000'
 };

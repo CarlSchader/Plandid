@@ -1,29 +1,37 @@
 (async function() {
     const express = require('express');
     const path = require('path');
-    const cors = require('cors');
+    // const cors = require('cors');
     const config = require('./config');
-    const database = require('./database');
+    // const database = require('./database');
 
-    await database.connect();
+    // await database.connect(); // Turn off unless you can connect to the database.
 
     app = express();
 
-    app.use(cors());
+    // app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({extended: false}));
 
     // CORS OPTIONS request handling
 
-    app.options('/', cors());
-    app.use('/login', require('./routes/login'));
-
     app.use(function(req, res, next) {
-        // res.header("Access-Control-Allow-Origin", '*');
-        res.header("Access-Control-Allow-Origin", config.url); // update to match the domain you will make the request from
-        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-        next();
-      });
+        // CORS headers
+        // res.header("Access-Control-Allow-Origin", config.url); // restrict it to the required domain
+        res.header("Access-Control-Allow-Origin", '*');
+        res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
+        // Set custom headers for CORS
+        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+        if (req.method === "OPTIONS") {
+            console.log('OPTIONS')
+            return res.sendStatus(200).end();
+        }
+
+        return next();
+    });
+
+    app.use('/login', require('./routes/login'));
 
     app.get('/', function(req, res) {
         res.sendFile(config.indexHTMLPath);
