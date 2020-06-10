@@ -1,14 +1,17 @@
 const express = require('express');
+const path = require('path');
+const config = require('../config');
+const database = require('../database');
+
 const router = express.Router();
 
 router.post('/signUp', function(req, res) {
-    console.log(req.body);
-    res.json({'hi': 'hi'});
+    
 });
 
 router.post('/login', function(req, res) {
     console.log(req.body);
-    res.json({'hi': 'hi'});
+    res.sendStatus(200);
 });
 
 module.exports = router;

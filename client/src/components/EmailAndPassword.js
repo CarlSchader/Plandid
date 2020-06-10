@@ -54,7 +54,7 @@ function EmailAndPassword({passwordMinLength= 8, handleSubmit= function(email, p
                 <Form.Control type="password" placeholder="Password" value={password} onChange={handlePasswordChange} isInvalid={password.length !== 0 && !passwordValid()}/>
                 {PasswordErrorJSX}
             </Form.Group>
-            <Button onClick={function() {handleSubmit(email, password)}} variant="primary" type="submit" disabled={!emailValid() || !passwordValid()}>
+            <Button onClick={function() {handleSubmit(email, password)}} variant="primary" type="button" disabled={!emailValid() || !passwordValid()}>
                 {buttonTitle}
             </Button>
         </form>
