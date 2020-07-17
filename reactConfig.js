@@ -1,3 +1,4 @@
 export default {
-    url: 'http://bytespace.io'
+    url: 'http://bytespace.io',
+    appName: 'Scheduler'
 };

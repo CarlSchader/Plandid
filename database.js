@@ -1,7 +1,7 @@
 const {MongoClient} = require('mongodb');
 const {mongodbConfig} = require('./config');
 
-const client = new MongoClient(mongodbConfig.uri, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(mongodbConfig.uri, {useNewUrlParser: true, useUnifiedTopology: true});
 
 module.exports = {
 	connect: async function() {
@@ -34,6 +34,14 @@ module.exports = {
 	},
 
 	update: async function(collection, objectToUpdate, updatedObject) {
-		return await client.db(mongodbConfig.databaseName).collection(collection).updateOne(objectToUpdate, {$set: updatedObject});
-	}
+		return await client.db(mongodbConfig.databaseName).collection(collection).updateOne(objectToUpdate, updatedObject);
+    },
+    
+    delete: async function(collection, objectToDelete) {
+		return await client.db(mongodbConfig.databaseName).collection(collection).deleteOne(objectToDelete);
+    },
+
+    deleteMany: async function(collection, objectToDelete) {
+		return await client.db(mongodbConfig.databaseName).collection(collection).deleteMany(objectToDelete);
+    },
 };
