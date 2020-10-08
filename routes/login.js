@@ -13,7 +13,7 @@ function scheduleSchema(email, password, number, name) {
         name: name,
         people: [],
         tasks: [],
-        weekly: new Array(7),
+        weekly: [[], [], [], [], [], [], []],
         exceptions: {}
     };
 }
@@ -76,7 +76,7 @@ router.post('/signUp', async function(req, res) {
             key = [...Array(10)].map(i=>[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"][Math.random()*[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"].length|0]).join``; 
         }
         let validationObject = {
-            creationDate: Date.now(),
+            createdAt: new Date(),
             key: key,
             email: req.body.email,
             password: req.body.password
@@ -112,7 +112,7 @@ router.get('/confirmAccount*', async function(req, res) {
     if (userData !== null) {
         await database.delete(mongodbConfig.emailValidationCollectionName, userData);
         await database.create(mongodbConfig.userDataCollectionName, {email: userData.email, password: userData.password});
-        await database.create(mongodbConfig.schedulesCollectionName, scheduleSchema(userData.email, userData.password, 1, "Schedule 1"));
+        await database.create(mongodbConfig.schedulesCollectionName, scheduleSchema(userData.email, userData.password, 0, "Schedule 1"));
         req.session.user = userData;
         req.session.save();
         console.log(`Created new user: ${userData.email}, ${userData.password}`);

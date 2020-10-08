@@ -1,7 +1,7 @@
 module.exports = {
     appName: 'Scheduler',
     port: 80,
-    url: 'http://bytespace.io',
+    url: 'http://carlschader.com',
     clientBuildPath: require('path').join(__dirname, 'client', 'build'),
     indexHTMLPath: require('path').join(__dirname, 'client', 'build', 'index.html'),
     sessionSecret: [...Array(10)].map(i=>[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"][Math.random()*[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"].length|0]).join``,

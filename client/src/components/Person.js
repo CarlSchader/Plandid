@@ -1,25 +1,29 @@
-import React, { useState } from 'react';
-import { Card, Accordion, Button, Form, ButtonGroup, Badge, Tabs, Tab } from 'react-bootstrap';
-import TimePicker from 'react-bootstrap-time-picker';
+import React from 'react';
+import { Card, Accordion, Button, Form, ButtonGroup, Badge, Tabs, Tab, ListGroup, Popover, OverlayTrigger, Row, Col } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../config';
 
 function secondsToString(seconds) {
     let suffix = "AM";
-    let hours = Math.floor(seconds, 3600);
+    let hours = Math.floor(seconds / 3600);
     if (hours > 11) suffix = "PM";
     hours = hours % 12;
     if (hours === 0) hours = 12;
-    return `${hours}:${Math.floor(seconds % 3600, 60)} ${suffix}`;
+    let minutes = `${Math.floor((seconds % 3600) / 60)}`
+    if (minutes < 10) minutes = `0${minutes}`;
+    return `${hours}:${minutes} ${suffix}`;
 }
 
-function personSchema(name, categories=new Array(7), weekly=[[], [], [], [], [], [], []], exceptions={}) {
-    return {
-        name: name,
-        categories: categories,
-        weekly: weekly,
-        exceptions: exceptions
-    };
+function militaryToNormal(string) {
+    let splitString = string.split(':');
+    let hours = parseInt(splitString[0]);
+    let suffix = "AM";
+    if (hours > 11) suffix = "PM";
+    hours = hours%12;
+    if (hours === 0) hours = 12;
+    let minutes = parseInt(splitString[1]);
+    if (minutes < 10) minutes = `0${minutes}`;
+    return `${hours}:${minutes} ${suffix}`;
 }
 
 const categoryMap = {
@@ -32,11 +36,15 @@ const categoryMap = {
     dark: 6
 };
 
-function Person({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) {
-    const [newName, setNewName] = useState("");
-    const [selectedCategories, setSelectedCategories] = useState(JSON.parse(JSON.stringify(data.categories)));
-    const [availability, setAvailability] = useState([0, (23 * 3600) + (59 * 60) + 59]);
-    const [selectedExceptions, setSelectedExceptions] = useState(data.exceptions);
+function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() => {}), currentSchedule={}, data={}, number=-1}) {
+
+    function submitChanges(updatedPerson, dayInt=-1, newException=false, removePerson=false) {
+        axios.post('/people/changePerson', {currentSchedule: currentSchedule, personNumber: number, person: data, updatedPerson: updatedPerson, dayInt: dayInt, newException: newException, removePerson: removePerson}, {baseURL: config.url, withCredentials: true})
+        .then(function(response) {
+            if (response.data !== null) window.alert(response.data);
+            updateApp();
+        });
+    }
 
     function categoryBadges() {
         let array = [];
@@ -48,58 +56,76 @@ function Person({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) 
         return array;
     }
 
-    function selectCategoryClick(category) {
-        let newArray = JSON.parse(JSON.stringify(selectedCategories));
+    function handleNameChange(event) {
+        let updatedPerson = JSON.parse(JSON.stringify(data));
+        updatedPerson.name = event.target.value;
+        submitChanges(updatedPerson);
+    }
+
+    function handleCategoryClick(category) {
+        let newArray = JSON.parse(JSON.stringify(data.categories));
         if (newArray[categoryMap[category]]) {
             newArray[categoryMap[category]] = false;
         }
         else {
             newArray[categoryMap[category]] = category;
         }
-        setSelectedCategories(newArray);
-    }
-
-    function handleSubmitChanges() {
-        let nextName = newName;
-        if (newName.length < 1) {
-            nextName = data.name;
-        }
-        else if (nextName.replace(/\s/g, '').length < 1) {
-            window.alert("Name must contain characters.");
-            return;
-        }
-        for (let i = 0; i < currentSchedule.people.length; i++) {
-            if (currentSchedule.people[i].name === nextName && nextName !== data.name) {
-                window.alert("Name already being used.");
-                return;
-            }
-        }
-        axios.post('/people/changePerson', {email: currentSchedule.email, password: currentSchedule.password, number: currentSchedule.number, currentPerson: data, updatedPerson: personSchema(nextName, selectedCategories)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-            .then(function(response) {
-                updateApp();
-                setNewName("");
-                setSelectedCategories(selectedCategories);
-            });
+        let updatedPerson = JSON.parse(JSON.stringify(data));
+        updatedPerson.categories = newArray;
+        submitChanges(updatedPerson);
     }
     
     function handleAddAvailability(dayInt) {
         return function() {
-            axios.post('/people/addAvailability', {email: currentSchedule.email, password: currentSchedule.password, number: currentSchedule.number, personNumber: number, dayInt: dayInt, availability: availability}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-            .then(function(response) {
-                updateApp();
-                setAvailability([0, (23 * 3600) + (59 * 60) + 59]);
-            });
-        }
+            let splitArrayStart = document.getElementById("availability-start-time").value.split(':');
+            let splitArrayEnd = document.getElementById("availability-end-time").value.split(':');
+            let startSecs = (parseInt(splitArrayStart[0]) * 3600) + (parseInt(splitArrayStart[1]) * 60);
+            let endSecs = (parseInt(splitArrayEnd[0]) * 3600) + (parseInt(splitArrayEnd[1]) * 60);
+
+            let updatedPerson = JSON.parse(JSON.stringify(data));
+            updatedPerson.weekly[dayInt].push([startSecs, endSecs]);
+            submitChanges(updatedPerson, dayInt);
+        };
     }
 
-    function renderWeekDay(dayInt) {
+    function handleRemoveAvailability(dayInt, elementNum) {
+        return function() {
+            let updatedPerson = JSON.parse(JSON.stringify(data));
+            updatedPerson.weekly[dayInt].splice(elementNum, 1);
+            submitChanges(updatedPerson);
+        };
+    }
+
+    function handleRemovePerson() {
+        submitChanges(JSON.parse(JSON.stringify(data)), -1, false ,true);
+        setActiveKey("-1");
+        return false;
+    }
+
+    function handleAddException() {
+        let start = `${document.getElementById("exception-date").value} ${document.getElementById("exception-start-time").value}`;
+        let end = `${document.getElementById("exception-date").value} ${document.getElementById("exception-end-time").value}`;
+        let updatedPerson = JSON.parse(JSON.stringify(data));
+        updatedPerson.exceptions.push([start, end, document.getElementById("exception-description").value]);
+        submitChanges(updatedPerson, -1, true);
+    }
+
+    function handleRemoveException(elementNum) {
+        return function() {
+            let updatedPerson = JSON.parse(JSON.stringify(data));
+            updatedPerson.exceptions.splice(elementNum, 1);
+            submitChanges(updatedPerson);
+        };
+    }
+
+    function renderWeekDay(dayString, dayInt) {
         let jsx = []
         if (data.weekly[dayInt].length === 0) {
             jsx.push(<ListGroup.Item>No available time.</ListGroup.Item>)
         }
         else {
             for (let i = 0; i < data.weekly[dayInt].length; i++) {
-                jsx.push(<ListGroup.Item>{`${secondsToString(data.weekly[dayInt][i][0])} to ${secondsToString(data.weekly[dayInt][i][1])}`}</ListGroup.Item>);
+                jsx.push(<ListGroup.Item><Button onClick={handleRemoveAvailability(dayInt, i)} variant="danger" type="button">x</Button>{`${secondsToString(data.weekly[dayInt][i][0])} to ${secondsToString(data.weekly[dayInt][i][1])}`}</ListGroup.Item>);
             }
         }
 
@@ -107,21 +133,31 @@ function Person({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) 
             <Popover id="popover-basic">
                 <Popover.Title as="h3">Add Available Time</Popover.Title>
                 <Popover.Content>
-                    <TimePicker onChange={(time) => {setAvailability([time, availability[1]])}} start="0:00" end="23:59" step={1} value={{time: availability[0]}} />
-                    <TimePicker onChange={(time) => {setAvailability([availability[0], time])}} start="0:00" end="23:59" step={1} value={{time: availability[1]}} />
-                    <Button variant="primary" type="button" onClick={handleAddAvailability}>Add</Button>
+                <Form onSubmit={(event) => {event.preventDefault()}}> {/* preventDefault stops enter key from reloading page. */}
+                    <Col>
+                        <Row>
+                            <Form.Label>Start time</Form.Label>
+                            <Form.Control defaultValue="12:00" type="time" placeholder="Start time" id="availability-start-time"/>
+                        </Row>
+                        <Row>
+                            <Form.Label>End time</Form.Label>
+                            <Form.Control defaultValue="13:00" type="time" placeholder="End time" id="availability-end-time"/>
+                        </Row>
+                    </Col>
+                </Form>
+                <Button variant="primary" type="button" onClick={handleAddAvailability(dayInt)}>Add</Button>
                 </Popover.Content>
             </Popover>
         );
 
         return (
             <Card>
-                <Card.Header>Available Time 
-                    <OverlayTrigger trigger="click" placement="left" overlay={popover}>
+                <Card.Header className="text-center"><h4>{`${dayString}: Available Time`}   
+                    <OverlayTrigger rootClose trigger="click" placement="right" overlay={popover}>
                         <Button variant="primary" size="lg" type="button">
                             +
                         </Button>
-                    </OverlayTrigger>
+                    </OverlayTrigger></h4>
                 </Card.Header>
                 <ListGroup variant="flush">
                     {jsx}
@@ -130,10 +166,93 @@ function Person({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) 
         );
     }
 
+    function renderExceptions() {
+        const popover = (
+            <Popover id="popover-basic">
+                <Popover.Title as="h3">Add Exception</Popover.Title>
+                <Popover.Content>
+                <Form onSubmit={(event) => {event.preventDefault()}}> {/* preventDefault stops enter key from reloading page. */}
+                    <Col>
+                        <Row>
+                            <Form.Label>Date</Form.Label>
+                            <Form.Control type="date" placeholder="Date" id="exception-date"/>
+                        </Row>
+                        <Row>
+                            <Form.Label>Start time</Form.Label>
+                            <Form.Control defaultValue="12:00" type="time" placeholder="Start time" id="exception-start-time"/>
+                        </Row>
+                        <Row>
+                            <Form.Label>End time</Form.Label>
+                            <Form.Control defaultValue="13:00" type="time" placeholder="End time" id="exception-end-time"/>
+                        </Row>
+                        <Row>
+                            <Form.Label>Description (optional)</Form.Label>
+                            <Form.Control as="textarea" rows="3" id="exception-description"/>
+                        </Row>
+                    </Col>
+                </Form>
+                <Button variant="primary" type="button" onClick={handleAddException}>Add</Button>
+                </Popover.Content>
+            </Popover>
+        );
+
+        let jsx = [];
+        jsx.push(
+            <Card.Header className="text-center">
+                <h4>Exceptions
+                    <OverlayTrigger rootClose trigger="click" placement="right" overlay={popover}>
+                        <Button variant="primary" size="lg" type="button">
+                            +
+                        </Button>
+                    </OverlayTrigger></h4>
+            </Card.Header>
+        );
+
+        if (data.exceptions.length === 0) jsx.push(<ListGroup.Item>No exceptions.</ListGroup.Item>);
+        else {
+            let listItems = [];
+            let tabItems = [];
+            for (let i = 0; i < data.exceptions.length; i++) {
+                listItems.push(
+                    <ListGroup.Item action href={`#exceptionLink${i}`}>
+                        <Button onClick={handleRemoveException(i)} variant="danger" type="button">x</Button>{`${data.exceptions[i][0].split(' ')[0]}: ${militaryToNormal(data.exceptions[i][0].split(' ')[1])} to ${militaryToNormal(data.exceptions[i][1].split(' ')[1])}`}
+                    </ListGroup.Item>
+                );
+                tabItems.push(
+                    <Tab.Pane eventKey={`#exceptionLink${i}`}>
+                        {data.exceptions[i][2]}
+                    </Tab.Pane>
+                );
+            }
+            jsx.push(
+                <Tab.Container>
+                    <Row>
+                        <Col sm={4}>
+                        <ListGroup>
+                            {listItems}
+                        </ListGroup>
+                        </Col>
+                        <Col sm={8}>
+                        <Tab.Content>
+                            {tabItems}
+                        </Tab.Content>
+                        </Col>
+                    </Row>
+                </Tab.Container>
+            );
+        }
+        return jsx;
+    }
+
+    function accordionToggleOnClick() {
+        if (getActiveKey() === number.toString()) setActiveKey("-1");
+        else setActiveKey(number.toString());
+    }
+
     return (
         <Card>
             <Card.Header>
-                <Accordion.Toggle as={Card.Header} eventKey={number.toString()}>
+                <Accordion.Toggle onClick={accordionToggleOnClick} as={Card.Header} eventKey={number.toString()}>
                     <Button variant="light" type="button" block>
                         <h2>{data.name}</h2>{categoryBadges()}
                     </Button>    
@@ -143,50 +262,51 @@ function Person({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) 
                 <Card.Body>
                     <Card>
                         <Card.Body>
-                            <Form>
+                            <Form onSubmit={(event) => {event.preventDefault()}}>
                                 <Form.Group>
                                     <Form.Label>Name</Form.Label>
-                                    <Form.Control type="text" placeholder={data.name} onChange={(event) => {setNewName(event.target.value.replace(/^\s+|\s+$/g, ''))}} value={newName} />
+                                    <Form.Control type="text" defaultValue={data.name} onBlur={handleNameChange} />
                                 </Form.Group>
                                 <Form.Group>
                                     <Form.Label>Categories</Form.Label>
                                         <ButtonGroup className="mr-2" aria-label="First group">
-                                            <Button onClick={() => {selectCategoryClick("primary")}} active={selectedCategories[categoryMap["primary"]]} variant="outline-primary" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("secondary")}} active={selectedCategories[categoryMap["secondary"]]} variant="outline-secondary" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("success")}} active={selectedCategories[categoryMap["success"]]} variant="outline-success" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("warning")}} active={selectedCategories[categoryMap["warning"]]} variant="outline-warning" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("danger")}} active={selectedCategories[categoryMap["danger"]]} variant="outline-danger" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("info")}} active={selectedCategories[categoryMap["info"]]} variant="outline-info" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("dark")}} active={selectedCategories[categoryMap["dark"]]} variant="outline-dark" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("primary")}} active={data.categories[categoryMap["primary"]]} variant="outline-primary" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("secondary")}} active={data.categories[categoryMap["secondary"]]} variant="outline-secondary" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("success")}} active={data.categories[categoryMap["success"]]} variant="outline-success" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("warning")}} active={data.categories[categoryMap["warning"]]} variant="outline-warning" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("danger")}} active={data.categories[categoryMap["danger"]]} variant="outline-danger" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("info")}} active={data.categories[categoryMap["info"]]} variant="outline-info" type="button"></Button>
+                                            <Button onClick={() => {handleCategoryClick("dark")}} active={data.categories[categoryMap["dark"]]} variant="outline-dark" type="button"></Button>
                                         </ButtonGroup>
                                 </Form.Group>
                             </Form>
                             <Tabs defaultActiveKey="Monday">
                                 <Tab eventKey="Monday" title="Monday">
-                                    {renderWeekDay(0)}
+                                    {renderWeekDay("Monday", 0)}
                                 </Tab>
                                 <Tab eventKey="Tuesday" title="Tuesday">
-                                    {renderWeekDay(1)}
+                                    {renderWeekDay("Tuesday", 1)}
                                 </Tab>
                                 <Tab eventKey="Wednesday" title="Wednesday">
-                                    {renderWeekDay(2)}
+                                    {renderWeekDay("Wednesday", 2)}
                                 </Tab>
                                 <Tab eventKey="Thursday" title="Thursday">
-                                    {renderWeekDay(3)}
+                                    {renderWeekDay("Thursday", 3)}
                                 </Tab>
                                 <Tab eventKey="Friday" title="Friday">
-                                    {renderWeekDay(4)}
+                                    {renderWeekDay("Friday", 4)}
                                 </Tab>
                                 <Tab eventKey="Saturday" title="Saturday">
-                                    {renderWeekDay(5)}
+                                    {renderWeekDay("Saturday", 5)}
                                 </Tab>
                                 <Tab eventKey="Sunday" title="Sunday">
-                                    {renderWeekDay(6)}
+                                    {renderWeekDay("Sunday", 6)}
                                 </Tab>
                             </Tabs>
-                            <Button variant="primary" type="button" onClick={handleSubmitChanges}>Submit Changes</Button>
+                            {renderExceptions()}
                         </Card.Body>
                     </Card>
+                    <Button onClick={handleRemovePerson} variant="danger" size="lg" type="button" block>Delete</Button>
                 </Card.Body>
             </Accordion.Collapse>
         </Card>

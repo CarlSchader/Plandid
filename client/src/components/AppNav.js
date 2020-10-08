@@ -3,66 +3,57 @@ import { Navbar, Nav, Button, Form, FormControl } from 'react-bootstrap';
 import config from '../config';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
+import { sendRequest } from '../utilities';
 
 function AppNav(props) { // currentSchedule updateApp
-    const [renamingProject, setRenamingProject] = useState(false);
-    const [renamingString, setRenamingString] = useState('');
+    const [renaming, setRenaming] = useState(false);
     let history = useHistory();
 
     function renameProject() {
-        axios.post('/appNav/renameSchedule', {email: props.currentSchedule.email, password: props.currentSchedule.password, oldName: props.currentSchedule.name, newName: renamingString}, {baseURL: config.url, withCredentials: true})
-            .then(function(response) {
-                if (!response.data) {
-                    window.alert('Name already in use.');
-                }
-                else {
-                    document.removeEventListener("mousedown", handleMouseDown);
-                    setRenamingProject(false);
-                    props.updateApp();
-                }
-            });
+        axios.post('/appNav/renameSchedule', {currentSchedule: props.currentSchedule, name: document.getElementById("AppNav-name").value}, {baseURL: config.url, withCredentials: true})
+        .then(function(response) {
+            if (response.data !== null) window.alert(response.data);
+            setRenaming(false);
+            props.updateApp();
+        });
     }
 
-    function handleMouseDown() {
-        document.removeEventListener("mousedown", handleMouseDown);
-        setRenamingProject(false);
+    function onResponse(response) {
+        if (response.data !== null) window.alert(response.data);
+        props.updateApp();
     }
 
-    if (renamingProject) {
-        return (
-            <Navbar bg="light" variant="light">
-                <Form onMouseOver={() => {document.removeEventListener("mousedown", handleMouseDown)}} onMouseOut={() => {document.addEventListener("mousedown", handleMouseDown)}} inline>
-                    <FormControl onChange={event => {setRenamingString(event.target.value)}} type="text" placeholder={props.currentSchedule.name} className="mr-sm-2" />
-                    <Button disabled={renamingString === ''} onClick={renameProject} variant="outline-info">Rename</Button>
-                </Form>
-                <Nav className="mr-auto">
-                    <Nav.Link>+</Nav.Link>
-                </Nav>
-                <Form inline>
-                    {/* <FormControl type="text" placeholder="Search" className="mr-sm-2" /> */}
-                    <Button variant="outline-primary" onClick={() => {history.push('/People')}}>People</Button>
-                    <Button variant="outline-success">Tasks</Button>
-                    <Button variant="outline-danger">Week</Button>
-                </Form>
-            </Navbar>
-        );
+    function renamingJSX() {
+        if (renaming) return <FormControl onBlur={renameProject} type="text" defaultValue={props.currentSchedule.name} className="mr-sm-2" id="AppNav-name" />;
+        else return <Button onClick={() => {setRenaming(true)}} variant="info" size="lg">{props.currentSchedule.name}</Button>;
     }
-    else {
-        return (
-            <Navbar bg="light" variant="light">
-                <Navbar.Brand onClick={() => {setRenamingProject(true); setRenamingString('');}}><Button size="lg" variant="info">{props.currentSchedule.name}</Button></Navbar.Brand>
-                <Nav className="mr-auto">
-                    <Nav.Link>+</Nav.Link>
-                </Nav>
-                <Form inline>
-                    {/* <FormControl type="text" placeholder="Search" className="mr-sm-2" /> */}
-                    <Button variant="outline-primary" onClick={() => {history.push('/People')}}>People</Button>
-                    <Button variant="outline-success" onClick={() => {history.push('/Tasks')}}>Tasks</Button>
-                    <Button variant="outline-danger" onClick={() => {history.push('/Week')}}>Week</Button>
-                </Form>
-            </Navbar>
-        );
+
+    function plannable() {
+        let bool = false;
+        for (let i = 0; i < props.currentSchedule.weekly.length; i++) {
+            bool = bool || props.currentSchedule.weekly[i].length > 0;
+        }
+        return bool && props.currentSchedule.people.length > 0 && props.currentSchedule.tasks.length > 0;
     }
+
+    return (
+        <Navbar bg="light" variant="light">
+            <Form onSubmit={(event) => {event.preventDefault()}} inline>
+                {renamingJSX()}
+            </Form>
+            <Nav className="mr-auto">
+                <Nav.Link>+</Nav.Link>
+                <Button onClick={sendRequest('/appNav/planSchedule', {currentSchedule: currentSchedule}, onResponse)} variant="primary" disabled={!plannable()}>Plan It</Button>
+            </Nav>
+            <Form onSubmit={(event) => {event.preventDefault()}} inline>
+                {/* <FormControl type="text" placeholder="Search" className="mr-sm-2" /> */}
+                <Button variant="outline-info" active={history.location.pathname === "/Calendar"} onClick={() => {history.push('/Calendar')}}>Calendar</Button>
+                <Button variant="outline-danger" active={history.location.pathname === "/People"} onClick={() => {history.push('/People')}}>People</Button>
+                <Button variant="outline-success" active={history.location.pathname === "/Tasks"} onClick={() => {history.push('/Tasks')}}>Tasks</Button>
+                <Button variant="outline-primary" active={history.location.pathname === "/Week"} onClick={() => {history.push('/Week')}}>Week</Button>
+            </Form>
+        </Navbar>
+    );
 }
 
 export default AppNav;

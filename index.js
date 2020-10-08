@@ -33,6 +33,7 @@
     app.use('/appNav', require('./routes/appNav'));
     app.use('/people', require('./routes/people'));
     app.use('/tasks', require('./routes/tasks'));
+    app.use('/week', require('./routes/week'));
 
     app.get('/', function(req, res) {
         res.sendFile(config.indexHTMLPath);
@@ -48,7 +49,7 @@
 
     app.post('/session', async function(req, res) {
         if (req.session && req.session.user) {
-            res.json(await database.read(config.mongodbConfig.schedulesCollectionName, {email: req.session.user.email, password: req.session.user.password, number: 1}));
+            res.json(await database.read(config.mongodbConfig.schedulesCollectionName, {email: req.session.user.email, password: req.session.user.password, number: 0}));
         }
         else {
             res.json(false);

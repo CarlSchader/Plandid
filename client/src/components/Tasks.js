@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Button, Container, Row, Col, Accordion, Popover, InputGroup, FormLabel, FormControl, ButtonGroup, OverlayTrigger } from 'react-bootstrap';
-import { useHistory } from 'react-router-dom';
 import Task from './Task';
 import axios from 'axios';
 import config from '../config';
@@ -13,35 +12,22 @@ function taskSchema(name, category) {
 }
 
 function Tasks({updateApp=(() => {}), currentSchedule={}}) {
+    const [activeKey, setActiveKey] = useState("-1");
     const [selectedCategory, setSelectedCategory] = useState("");
     const [newName, setNewName] = useState("");
-    let history = useHistory();
 
     function tasksJSX() {
         let jsx = [];
         for (let i = 0; i < currentSchedule.tasks.length; i++) {
-            jsx.push(<Task updateApp={updateApp} currentSchedule={currentSchedule} data={currentSchedule.tasks[i]} number={i} />);
+            jsx.push(<Task setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} updateApp={updateApp} currentSchedule={currentSchedule} data={currentSchedule.tasks[i]} number={i} />);
         }
         return jsx;
     }
 
     function handleAddTask() {
-        if (newName.length < 1) {
-            window.alert("No name given.");
-            return;
-        }
-        else if (newName.replace(/\s/g, '').length < 1) {
-            window.alert("Name must contain characters.");
-            return;
-        }
-        for (let i = 0; i < currentSchedule.tasks.length; i++) {
-            if (currentSchedule.tasks[i].name === newName) {
-                window.alert("Name already being used.");
-                return;
-            }
-        }
-        axios.post('/tasks/addTask', {email: currentSchedule.email, password: currentSchedule.password, number: currentSchedule.number, task: taskSchema(newName, selectedCategory)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
+        axios.post('/tasks/addTask', {currentSchedule: currentSchedule, task: taskSchema(newName, selectedCategory)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
             .then(function(response) {
+                if (response.data !== null) window.alert(response.data);
                 updateApp();
             });
     }
@@ -84,24 +70,22 @@ function Tasks({updateApp=(() => {}), currentSchedule={}}) {
         <div>
             <Container>
                 <Row>
-                    <Col className="text-left">
-                        <Button onClick={() => {history.push('/Calendar')}} variant="success" size="lg" type="button">
-                            Back
-                        </Button>
+                    <Col>
+                        
                     </Col>
                     <Col className="text-center">
                         <h1>Tasks</h1>
                     </Col>
                     <Col className="text-right">
-                    <OverlayTrigger trigger="click" placement="left" overlay={popover}>
+                    <OverlayTrigger rootClose trigger="click" placement="left" overlay={popover}>
                         <Button variant="primary" size="lg" type="button">
-                            +
+                            Add Task
                         </Button>
                     </OverlayTrigger>
                     </Col>
                 </Row>
             </Container>
-            <Accordion>
+            <Accordion activeKey={activeKey}>
                 {tasksJSX()}
             </Accordion>
         </div>

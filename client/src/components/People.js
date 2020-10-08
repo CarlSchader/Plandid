@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { Button, Container, Row, Col, Accordion, Popover, InputGroup, FormLabel, FormControl, ButtonGroup, OverlayTrigger } from 'react-bootstrap';
-import { useHistory } from 'react-router-dom';
 import Person from './Person';
 import axios from 'axios';
 import config from '../config';
 
-function personSchema(name, categories=new Array(7), weekly=[[], [], [], [], [], [], []], exceptions={}) {
+function personSchema(name, categories=new Array(7), weekly=[[], [], [], [], [], [], []], exceptions=[]) {
     return {
         name: name,
         categories: categories,
         weekly: weekly,
-        exceptions: categories
+        exceptions: exceptions
     };
 }
 
@@ -27,33 +26,20 @@ const categoryMap = {
 function People({updateApp=(() => {}), currentSchedule={}}) {
     const [selectedCategories, setSelectedCategories] = useState(new Array(7));
     const [newName, setNewName] = useState("");
-    let history = useHistory();
+    const [activeKey, setActiveKey] = useState("-1");
 
     function peopleJSX() {
         let jsx = [];
         for (let i = 0; i < currentSchedule.people.length; i++) {
-            jsx.push(<Person updateApp={updateApp} currentSchedule={currentSchedule} data={currentSchedule.people[i]} number={i} />);
+            jsx.push(<Person updateApp={updateApp} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} currentSchedule={currentSchedule} data={currentSchedule.people[i]} number={i} />);
         }
         return jsx;
     }
 
     function handleAddPerson() {
-        if (newName.length < 1) {
-            window.alert("No name given.");
-            return;
-        }
-        else if (newName.replace(/\s/g, '').length < 1) {
-            window.alert("Name must contain characters.");
-            return;
-        }
-        for (let i = 0; i < currentSchedule.people.length; i++) {
-            if (currentSchedule.people[i].name === newName) {
-                window.alert("Name already being used.");
-                return;
-            }
-        }
-        axios.post('/people/addPerson', {email: currentSchedule.email, password: currentSchedule.password, number: currentSchedule.number, person: personSchema(newName, selectedCategories)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
+        axios.post('/people/addPerson', {currentSchedule: currentSchedule, person: personSchema(newName, selectedCategories)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
             .then(function(response) {
+                if (response.data !== null) window.alert(response.data);
                 updateApp();
             });
     }
@@ -98,24 +84,22 @@ function People({updateApp=(() => {}), currentSchedule={}}) {
         <div>
             <Container>
                 <Row>
-                    <Col className="text-left">
-                        <Button onClick={() => {history.push('/Calendar')}} variant="success" size="lg" type="button">
-                            Back
-                        </Button>
+                    <Col>
+                        
                     </Col>
                     <Col className="text-center">
                         <h1>People</h1>
                     </Col>
                     <Col className="text-right">
-                    <OverlayTrigger trigger="click" placement="left" overlay={popover}>
+                    <OverlayTrigger rootClose trigger="click" placement="left" overlay={popover}>
                         <Button variant="primary" size="lg" type="button">
-                            +
+                            Add Person
                         </Button>
                     </OverlayTrigger>
                     </Col>
                 </Row>
             </Container>
-            <Accordion>
+            <Accordion activeKey={activeKey}>
                 {peopleJSX()}
             </Accordion>
         </div>

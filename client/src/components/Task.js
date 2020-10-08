@@ -1,49 +1,31 @@
-import React, { useState } from 'react';
-import { Card, Accordion, Button, Form, ButtonGroup, Badge } from 'react-bootstrap';
+import React from 'react';
+import { Card, Accordion, Button, Form, ButtonGroup } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../config';
 
-function taskSchema(name, category) {
-    return {
-        name: name,
-        category: category
-    };
-}
-
-function Task({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) {
-    const [newName, setNewName] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState(data.category);
-
-    function selectCategoryClick(category) {
-        if (selectedCategory === category) {
-            setSelectedCategory("");
-        }
-        else {
-            setSelectedCategory(category);
-        }
+function Task({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() => {}), currentSchedule={}, data={}, number=-1}) {
+    function sendRequest(path, input) {
+        axios.post(path, {currentSchedule: currentSchedule, task: data, input: input}, {baseURL: config.url, withCredentials: true})
+        .then(function(response) {
+            if (response.data !== null) window.alert(response.data);
+            updateApp();
+        });
     }
 
-    function handleSubmitChanges() {
-        let nextName = newName;
-        if (newName.length < 1) {
-            nextName = data.name;
-        }
-        else if (nextName.replace(/\s/g, '').length < 1) {
-            window.alert("Name must contain characters.");
-            return;
-        }
-        for (let i = 0; i < currentSchedule.tasks.length; i++) {
-            if (currentSchedule.tasks[i].name === nextName && nextName !== data.name) {
-                window.alert("Name already being used.");
-                return;
-            }
-        }
-        axios.post('/tasks/changeTask', {email: currentSchedule.email, password: currentSchedule.password, number: currentSchedule.number, currentTask: data, updatedTask: taskSchema(nextName, selectedCategory)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-            .then(function(response) {
-                updateApp();
-                setNewName("");
-                setSelectedCategory(selectedCategory);
-            });
+    function handleNameChange() {
+        sendRequest('/tasks/changeName', {name: document.getElementById("task-name").value, taskNumber: number});
+    }
+
+    function handleCategoryChange(category) {
+        return function() {
+            if (data.category === category) sendRequest('/tasks/changeCategory', {category: ""});
+            else sendRequest('/tasks/changeCategory', {category: category});
+        };
+    }
+
+    function handleRemoveTask() {
+        sendRequest('/tasks/removeTask', {});
+        setActiveKey("-1")
     }
 
     function buttonVariant() {
@@ -55,10 +37,15 @@ function Task({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) {
         }
     }
 
+    function accordionToggleOnClick() {
+        if (getActiveKey() === number.toString()) setActiveKey("-1");
+        else setActiveKey(number.toString());
+    }
+
     return (
         <Card>
             <Card.Header>
-                <Accordion.Toggle as={Card.Header} eventKey={number.toString()}>
+                <Accordion.Toggle onClick={accordionToggleOnClick} as={Card.Header} eventKey={number.toString()}>
                     <Button variant={buttonVariant()} type="button" block>
                         <h2>{data.name}</h2>
                     </Button>    
@@ -68,26 +55,26 @@ function Task({updateApp=(() => {}), currentSchedule={}, data={}, number=-1}) {
                 <Card.Body>
                     <Card>
                         <Card.Body>
-                            <Form>
+                            <Form onSubmit={(event) => {event.preventDefault()}}>
                                 <Form.Group>
                                     <Form.Label>Name</Form.Label>
-                                    <Form.Control type="text" placeholder={data.name} onChange={(event) => {setNewName(event.target.value.replace(/^\s+|\s+$/g, ''))}} value={newName} />
+                                    <Form.Control type="text" defaultValue={data.name} onBlur={handleNameChange} id="task-name" />
                                 </Form.Group>
 
                                 <Form.Group>
                                     <Form.Label>Category</Form.Label>
                                         <ButtonGroup className="mr-2" aria-label="First group">
-                                            <Button onClick={() => {selectCategoryClick("primary")}} active={selectedCategory === "primary"} variant="outline-primary" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("secondary")}} active={selectedCategory === "secondary"} variant="outline-secondary" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("success")}} active={selectedCategory === "success"} variant="outline-success" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("warning")}} active={selectedCategory === "warning"} variant="outline-warning" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("danger")}} active={selectedCategory === "danger"} variant="outline-danger" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("info")}} active={selectedCategory === "info"} variant="outline-info" type="button"></Button>
-                                            <Button onClick={() => {selectCategoryClick("dark")}} active={selectedCategory === "dark"} variant="outline-dark" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("primary")} active={data.category === "primary"} variant="outline-primary" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("secondary")} active={data.category === "secondary"} variant="outline-secondary" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("success")} active={data.category === "success"} variant="outline-success" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("warning")} active={data.category === "warning"} variant="outline-warning" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("danger")} active={data.category === "danger"} variant="outline-danger" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("info")} active={data.category === "info"} variant="outline-info" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("dark")} active={data.category === "dark"} variant="outline-dark" type="button"></Button>
                                         </ButtonGroup>
                                 </Form.Group>
+                                <Button onClick={handleRemoveTask} variant="danger" size="lg" type="button" block>Delete</Button>
                             </Form>
-                            <Button variant="primary" type="button" onClick={handleSubmitChanges}>Submit Changes</Button>
                         </Card.Body>
                     </Card>
                 </Card.Body>

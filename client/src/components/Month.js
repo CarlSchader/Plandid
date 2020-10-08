@@ -15,12 +15,12 @@ function initializeDayValues(year, month) {
         numberOfDaysPreviousMonth = new Date(year, month - 1 + 1, 0).getDate();
     }
     let firstDayOfTheWeek = new Date(year, month, 1).getDay();
-    let array = new Array(35);
+    let array = new Array(42);
     for (let i = 0; i < firstDayOfTheWeek; i++) {
         array[i] = {day: numberOfDaysPreviousMonth - firstDayOfTheWeek + 1 + i, color: 'bg-secondary'};
     }
     let color = 'bg-white';
-    for (let i = firstDayOfTheWeek; i < 35; i++) {
+    for (let i = firstDayOfTheWeek; i < 42; i++) {
         if ((i - firstDayOfTheWeek) === numberOfDays) {
             color = 'bg-secondary';
         }
@@ -70,6 +70,10 @@ function Month(props) { // year, month
                 <Row>
                     {/* <Col><Day className={dayValues[].color} value={dayValues[28].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[29].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[30].day}/></Col><Col><Day value={dayValues[31].day}/></Col><Col><Day value={dayValues[32].day}/></Col><Col><Day value={dayValues[33].day}/></Col><Col><Day value={dayValues[34].day}/></Col> */}
                     {daysOfJSX(28, 7)}
+                </Row>
+                <Row>
+                    {/* <Col><Day className={dayValues[].color} value={dayValues[28].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[29].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[30].day}/></Col><Col><Day value={dayValues[31].day}/></Col><Col><Day value={dayValues[32].day}/></Col><Col><Day value={dayValues[33].day}/></Col><Col><Day value={dayValues[34].day}/></Col> */}
+                    {daysOfJSX(35, 7)}
                 </Row>
             </Container>
         </Card>
