@@ -43,13 +43,13 @@ function EmailAndPassword({passwordMinLength= 8, handleSubmit= function(email, p
 
     return (
         <form>
-            <Form.Group controlId="formBasicEmail">
+            <Form.Group>
                 <Form.Label>Email address</Form.Label>
                 <Form.Control type="email" placeholder="Enter email" value={email} onChange={handleEmailChange} isInvalid={email.length !== 0 && !emailValid()} />
                 {emailErrorJSX}
             </Form.Group>
 
-            <Form.Group controlId="formBasicPassword">
+            <Form.Group>
                 <Form.Label>Password</Form.Label>
                 <Form.Control type="password" placeholder="Password" value={password} onChange={handlePasswordChange} isInvalid={password.length !== 0 && !passwordValid()}/>
                 {PasswordErrorJSX}

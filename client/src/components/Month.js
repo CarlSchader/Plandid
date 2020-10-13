@@ -3,11 +3,11 @@ import { Container, Col, Card, Row } from 'react-bootstrap';
 import Day from './Day';
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-// const daysOfTheWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function initializeDayValues(year, month) {
     let numberOfDays = new Date(year, month + 1, 0).getDate();
     let numberOfDaysPreviousMonth = 0;
+    let today = new Date();
     if (month === 0) {
         numberOfDaysPreviousMonth = new Date(year - 1, 11 + 1, 0).getDate();
     }
@@ -25,6 +25,9 @@ function initializeDayValues(year, month) {
             color = 'bg-secondary';
         }
         array[i] = {day: ((i - firstDayOfTheWeek) % numberOfDays) + 1, color: color};
+        if (today.getDate() === array[i].day && today.getMonth() === month && today.getFullYear() === year) {
+            array[i].color = 'bg-warning';
+        }
     }
     return array;
 }

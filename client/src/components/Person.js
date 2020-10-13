@@ -65,7 +65,7 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
     function handleCategoryClick(category) {
         let newArray = JSON.parse(JSON.stringify(data.categories));
         if (newArray[categoryMap[category]]) {
-            newArray[categoryMap[category]] = false;
+            newArray[categoryMap[category]] = null;
         }
         else {
             newArray[categoryMap[category]] = category;
@@ -105,8 +105,10 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
     function handleAddException() {
         let start = `${document.getElementById("exception-date").value} ${document.getElementById("exception-start-time").value}`;
         let end = `${document.getElementById("exception-date").value} ${document.getElementById("exception-end-time").value}`;
+        let isAvailable = document.getElementById("isAvailable-switch").checked;
+        let description = document.getElementById("exception-description").value;
         let updatedPerson = JSON.parse(JSON.stringify(data));
-        updatedPerson.exceptions.push([start, end, document.getElementById("exception-description").value]);
+        updatedPerson.exceptions.push([start, end, description, isAvailable]);
         submitChanges(updatedPerson, -1, true);
     }
 
@@ -174,6 +176,9 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
                 <Form onSubmit={(event) => {event.preventDefault()}}> {/* preventDefault stops enter key from reloading page. */}
                     <Col>
                         <Row>
+                            <Form.Check type="switch" id="isAvailable-switch" label="Unavailable/Available"/>
+                        </Row>
+                        <Row>
                             <Form.Label>Date</Form.Label>
                             <Form.Control type="date" placeholder="Date" id="exception-date"/>
                         </Row>
@@ -213,8 +218,12 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
             let listItems = [];
             let tabItems = [];
             for (let i = 0; i < data.exceptions.length; i++) {
+                let variant = "success";
+                if (!data.exceptions[i][3]) {
+                    variant = "warning"
+                }
                 listItems.push(
-                    <ListGroup.Item action href={`#exceptionLink${i}`}>
+                    <ListGroup.Item variant={variant} action href={`#exceptionLink${i}`}>
                         <Button onClick={handleRemoveException(i)} variant="danger" type="button">x</Button>{`${data.exceptions[i][0].split(' ')[0]}: ${militaryToNormal(data.exceptions[i][0].split(' ')[1])} to ${militaryToNormal(data.exceptions[i][1].split(' ')[1])}`}
                     </ListGroup.Item>
                 );

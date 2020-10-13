@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, CardGroup, Card, ListGroup, Badge, Button, Dropdown, Popover, Form, OverlayTrigger, Tab ,Tabs } from 'react-bootstrap';
+import { Container, Row, Col, Card, ListGroup, Badge, Button, Dropdown, Popover, Form, OverlayTrigger, Tab ,Tabs } from 'react-bootstrap';
 import { sendRequest, secondsToString } from '../utilities';
 
 function Week({updateApp=(() => {}), currentSchedule={}}) {
@@ -61,7 +61,7 @@ function Week({updateApp=(() => {}), currentSchedule={}}) {
             }
             const popover = (
                 <Popover id="popover-basic">
-                    <Popover.Title as="h3">Add Available Time</Popover.Title>
+                    <Popover.Title as="h3">New Task</Popover.Title>
                     <Popover.Content>
                         <Form onSubmit={(event) => {event.preventDefault()}}> {/* preventDefault stops enter key from reloading page. */}
                             <Col>
@@ -76,8 +76,8 @@ function Week({updateApp=(() => {}), currentSchedule={}}) {
                                 <Row>
                                     {/* <Form.Label>Task</Form.Label> */}
                                     <Dropdown>
-                                        <Dropdown.Toggle variant={`outline-dark`}>
-                                            {() => {if (selectedTask === null) return "Select Task"; else return selectedTask}}
+                                        <Dropdown.Toggle variant={(() => {if (selectedTask === null) return "outline-dark"; else return selectedTask.category})()}>
+                                            {(() => {if (selectedTask === null) return "Select Task"; else return selectedTask.name})()}
                                         </Dropdown.Toggle>
                                         <Dropdown.Menu>
                                             {renderAddTaskList(i)}

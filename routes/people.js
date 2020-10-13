@@ -14,7 +14,7 @@ const categoryMap = {
     dark: 6
 };
 
-function availabilityAlgorith(availList, newAvail) {
+function availabilityAlgorithm(availList, newAvail) {
     if (availList.length !== 0) {
         let changedAvail = [newAvail[0], newAvail[1]];
 
@@ -76,7 +76,7 @@ function availabilityAlgorith(availList, newAvail) {
     else return [newAvail];
 }
 
-function exceptionAlgorith(availList, newAvail) {
+function exceptionAlgorithm(availList, newAvail) {
     if (availList.length !== 0) {
         let changedAvail = [newAvail[0], newAvail[1]];
 
@@ -149,9 +149,9 @@ function exceptionAlgorith(availList, newAvail) {
             }
         }
         changedAvail[2] = newString.trim();
+        changedAvail.push(newAvail[3]);
 
         availList.splice(i + 1, j - i - 1, changedAvail);
-
         return availList;
     }
     else return [newAvail];
@@ -238,7 +238,7 @@ router.post('/changePerson', async function(req, res) { // TODO: Send error mess
 
         // Organizes the availabilities.
         else {
-            finalPerson.weekly[req.body.dayInt] = availabilityAlgorith(finalPerson.weekly[req.body.dayInt], newAvail);
+            finalPerson.weekly[req.body.dayInt] = availabilityAlgorithm(finalPerson.weekly[req.body.dayInt], newAvail);
         }
     }
 
@@ -256,7 +256,7 @@ router.post('/changePerson', async function(req, res) { // TODO: Send error mess
 
         // Organizes the exceptions.
         else {
-            finalPerson.exceptions = exceptionAlgorith(finalPerson.exceptions, exception);
+            finalPerson.exceptions = exceptionAlgorithm(finalPerson.exceptions, exception);
         }
     }
 

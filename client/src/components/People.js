@@ -6,7 +6,6 @@ import config from '../config';
 
 function personSchema(name, categories=new Array(7), weekly=[[], [], [], [], [], [], []], exceptions=[]) {
     return {
-        name: name,
         categories: categories,
         weekly: weekly,
         exceptions: exceptions
@@ -47,7 +46,7 @@ function People({updateApp=(() => {}), currentSchedule={}}) {
     function selectCategoryClick(category) {
         let newArray = JSON.parse(JSON.stringify(selectedCategories));
         if (newArray[categoryMap[category]]) {
-            newArray[categoryMap[category]] = false;
+            newArray[categoryMap[category]] = null;
         }
         else {
             newArray[categoryMap[category]] = category;

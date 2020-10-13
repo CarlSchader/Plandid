@@ -34,6 +34,7 @@
     app.use('/people', require('./routes/people'));
     app.use('/tasks', require('./routes/tasks'));
     app.use('/week', require('./routes/week'));
+    app.use('/exceptions', require('./routes/exceptions'));
 
     app.get('/', function(req, res) {
         res.sendFile(config.indexHTMLPath);

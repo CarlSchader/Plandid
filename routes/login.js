@@ -5,16 +5,18 @@ const database = require('../database');
 
 const router = express.Router();
 
-function scheduleSchema(email, password, number, name) {
+function scheduleSchema(email, password, number, name, timezone) {
     return {
         email: email,
         password: password, 
         number: number,
         name: name,
-        people: [],
-        tasks: [],
+        timezone: timezone,
+        people: {},
+        tasks: {},
         weekly: [[], [], [], [], [], [], []],
-        exceptions: {}
+        exceptions: [],
+        plans: []
     };
 }
 
@@ -41,7 +43,7 @@ function sendEmail(to, subject, html, from = emailConfig.address, password = ema
       });
 }
 
-function emailString(key) {
+function emailString(key, timezone) {
     return `
     <!doctype html>
     <html lang="en">
@@ -55,6 +57,7 @@ function emailString(key) {
         </p>
         <form action="${url}/login/confirmAccountkey" method="get">
             <input type="hidden" name="key" value="${key}" />
+            <input type="hidden" name="timezone" value=${timezone}>
             <input type="submit" value="Confirm">
         </form>
       </body>
@@ -82,7 +85,7 @@ router.post('/signUp', async function(req, res) {
             password: req.body.password
         };
         await database.create(mongodbConfig.emailValidationCollectionName, validationObject);
-        sendEmail(req.body.email, `Welcome to ${appName}`, emailString(key));
+        sendEmail(req.body.email, `Welcome to ${appName}`, emailString(key, req.body.timezone));
         res.json(0);
     }
     else { // 1: Email is already in database.
@@ -111,8 +114,8 @@ router.get('/confirmAccount*', async function(req, res) {
     let userData = await database.read(mongodbConfig.emailValidationCollectionName, {key: req.query.key});
     if (userData !== null) {
         await database.delete(mongodbConfig.emailValidationCollectionName, userData);
-        await database.create(mongodbConfig.userDataCollectionName, {email: userData.email, password: userData.password});
-        await database.create(mongodbConfig.schedulesCollectionName, scheduleSchema(userData.email, userData.password, 0, "Schedule 1"));
+        await database.create(mongodbConfig.userDataCollectionName, {email: userData.email, password: userData.password, subscribed: false});
+        await database.create(mongodbConfig.schedulesCollectionName, scheduleSchema(userData.email, userData.password, 0, "Schedule 1", req.query.timezone));
         req.session.user = userData;
         req.session.save();
         console.log(`Created new user: ${userData.email}, ${userData.password}`);

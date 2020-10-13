@@ -22,7 +22,6 @@ router.post('/planSchedule', async function(req, res) {
         res.json('Schedule not ready for planning. People, Tasks, or Week are empty.\n');
         return;
     }
-    
 });
 
 router.post('/renameSchedule', async function(req, res) {
@@ -41,6 +40,16 @@ router.post('/renameSchedule', async function(req, res) {
     }
 
     await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number}, {$set: {"name": newName}});
+    res.json(null);
+});
+
+router.post('/changeTimezone', async function(req, res) {
+    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
+    if (schedule === null) {
+        res.json("Invalid user data.\n");
+        return;
+    }
+    await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number}, {$set: {"timezone": req.body.timezone}});
     res.json(null);
 });
 

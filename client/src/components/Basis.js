@@ -9,6 +9,7 @@ import Calendar from './Calendar';
 import People from './People';
 import Tasks from './Tasks';
 import Week from './Week';
+import Exceptions from './Exceptions';
 import AppNav from './AppNav';
 
 let placeHolderSchedule = {
@@ -47,7 +48,7 @@ function Basis() {
     if (loggedIn) {
         return (
             <div>
-                <AppNav currentSchedule={currentSchedule} updateApp={updateApp}/>
+                <AppNav updateApp={updateApp} currentSchedule={currentSchedule}/>
                 <Switch>
                     <Route exact path="/Calendar">
                         <Calendar />
@@ -61,9 +62,9 @@ function Basis() {
                     <Route exact path="/Week">
                         <Week updateApp={updateApp} currentSchedule={currentSchedule}/>
                     </Route>
-                    {/* TODO <Route exact path="/Exceptions">
-                        <Week updateApp={updateApp} currentSchedule={currentSchedule}/>
-                    </Route> */}
+                    <Route exact path="/Exceptions">
+                        <Exceptions updateApp={updateApp} currentSchedule={currentSchedule}/>
+                    </Route>
                     <Route exact path ="/Login">
                         <Login />
                     </Route>
