@@ -1,30 +1,7 @@
 import React from 'react';
+import { DateTime } from 'luxon';
+import { localDate, localDateFromValues, localWeekTime } from '../utilities';
 import { Card, Accordion, Button, Form, ButtonGroup, Badge, Tabs, Tab, ListGroup, Popover, OverlayTrigger, Row, Col } from 'react-bootstrap';
-import axios from 'axios';
-import config from '../config';
-
-function secondsToString(seconds) {
-    let suffix = "AM";
-    let hours = Math.floor(seconds / 3600);
-    if (hours > 11) suffix = "PM";
-    hours = hours % 12;
-    if (hours === 0) hours = 12;
-    let minutes = `${Math.floor((seconds % 3600) / 60)}`
-    if (minutes < 10) minutes = `0${minutes}`;
-    return `${hours}:${minutes} ${suffix}`;
-}
-
-function militaryToNormal(string) {
-    let splitString = string.split(':');
-    let hours = parseInt(splitString[0]);
-    let suffix = "AM";
-    if (hours > 11) suffix = "PM";
-    hours = hours%12;
-    if (hours === 0) hours = 12;
-    let minutes = parseInt(splitString[1]);
-    if (minutes < 10) minutes = `0${minutes}`;
-    return `${hours}:${minutes} ${suffix}`;
-}
 
 const categoryMap = {
     primary: 0,
@@ -36,16 +13,7 @@ const categoryMap = {
     dark: 6
 };
 
-function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() => {}), currentSchedule={}, data={}, number=-1}) {
-
-    function submitChanges(updatedPerson, dayInt=-1, newException=false, removePerson=false) {
-        axios.post('/people/changePerson', {currentSchedule: currentSchedule, personNumber: number, person: data, updatedPerson: updatedPerson, dayInt: dayInt, newException: newException, removePerson: removePerson}, {baseURL: config.url, withCredentials: true})
-        .then(function(response) {
-            if (response.data !== null) window.alert(response.data);
-            updateApp();
-        });
-    }
-
+function Person({setQuery=() => {}, setActiveKey=(() => {}), getActiveKey=(() => {}), data={}, number=-1, name=""}) {
     function categoryBadges() {
         let array = [];
         for (let i = 0; i < data.categories.length; i++) {
@@ -57,77 +25,136 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
     }
 
     function handleNameChange(event) {
-        let updatedPerson = JSON.parse(JSON.stringify(data));
-        updatedPerson.name = event.target.value;
-        submitChanges(updatedPerson);
+        setQuery({
+            path: "/people/changeName",
+            data: {oldName: name, newName: event.target.value}
+        });
     }
 
     function handleCategoryClick(category) {
         let newArray = JSON.parse(JSON.stringify(data.categories));
-        if (newArray[categoryMap[category]]) {
-            newArray[categoryMap[category]] = null;
+        let index = data.categories.findIndex(x => x === categoryMap[category]);
+        if (index === -1) {
+            newArray.push(categoryMap[category]);
         }
         else {
-            newArray[categoryMap[category]] = category;
+            newArray.splice(index, 1);
         }
-        let updatedPerson = JSON.parse(JSON.stringify(data));
-        updatedPerson.categories = newArray;
-        submitChanges(updatedPerson);
+        setQuery({
+            path: "/people/changeCategories",
+            data: {name: name, categories: newArray}
+        });
     }
     
     function handleAddAvailability(dayInt) {
         return function() {
-            let splitArrayStart = document.getElementById("availability-start-time").value.split(':');
-            let splitArrayEnd = document.getElementById("availability-end-time").value.split(':');
-            let startSecs = (parseInt(splitArrayStart[0]) * 3600) + (parseInt(splitArrayStart[1]) * 60);
-            let endSecs = (parseInt(splitArrayEnd[0]) * 3600) + (parseInt(splitArrayEnd[1]) * 60);
-
-            let updatedPerson = JSON.parse(JSON.stringify(data));
-            updatedPerson.weekly[dayInt].push([startSecs, endSecs]);
-            submitChanges(updatedPerson, dayInt);
+            const [startHour, startMinute] = document.getElementById("availability-start-time").value.split(':');
+            const [endHour, endMinute] = document.getElementById("availability-end-time").value.split(':');
+            let dtStart = localDateFromValues({weekday: dayInt + 1, hour: parseInt(startHour), minute: parseInt(startMinute)});
+            let dtEnd = localDateFromValues({weekday: dayInt + 1, hour: parseInt(endHour), minute: parseInt(endMinute)});
+            if (dtStart >= dtEnd) {
+                window.alert("Start time must be before end time.");
+            }
+            else {
+                setQuery({
+                    path: "/people/addAvailability",
+                    data: {name: name, utcStart: dtStart.toMillis(), utcEnd: dtEnd.toMillis()}
+                });
+            }
         };
     }
 
-    function handleRemoveAvailability(dayInt, elementNum) {
+    function handleRemoveAvailability(elementNum) {
         return function() {
-            let updatedPerson = JSON.parse(JSON.stringify(data));
-            updatedPerson.weekly[dayInt].splice(elementNum, 1);
-            submitChanges(updatedPerson);
+            setQuery({
+                path: "/people/removeAvailability",
+                data: {name: name, index: elementNum}
+            });
         };
     }
 
     function handleRemovePerson() {
-        submitChanges(JSON.parse(JSON.stringify(data)), -1, false ,true);
+        setQuery({
+            path: "people/removePerson",
+            data: {name: name}
+        });
         setActiveKey("-1");
         return false;
     }
 
     function handleAddException() {
-        let start = `${document.getElementById("exception-date").value} ${document.getElementById("exception-start-time").value}`;
-        let end = `${document.getElementById("exception-date").value} ${document.getElementById("exception-end-time").value}`;
+        let startDate = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
+        let startTime = document.getElementById("exception-start-time").value.split(':').map(x => parseInt(x));
+        let endDate = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
+        let endTime = document.getElementById("exception-end-time").value.split(':').map(x => parseInt(x));
         let isAvailable = document.getElementById("isAvailable-switch").checked;
         let description = document.getElementById("exception-description").value;
-        let updatedPerson = JSON.parse(JSON.stringify(data));
-        updatedPerson.exceptions.push([start, end, description, isAvailable]);
-        submitChanges(updatedPerson, -1, true);
+        if (startDate.length !== 3 || endDate.length !== 3) {
+            window.alert("No date given.");
+            return;
+        }
+        if (startTime.length !== 2 || endTime.length !== 2) {
+            window.alert("Invalid times.")
+            return;
+        }
+
+        let dtStart = localDateFromValues({year: startDate[0], month: startDate[1], day: startDate[2], hour: startTime[0], minute: startTime[1]});
+        let dtEnd = localDateFromValues({year: endDate[0], month: endDate[1], day: endDate[2], hour: endTime[0], minute: endTime[1]});
+        if (dtStart >= dtEnd) {
+            window.alert("Start time must be before end time.");
+        }
+        else {
+            setQuery({
+                path: "/people/addException",
+                data: {name: name, utcStart: dtStart.toMillis(), utcEnd: dtEnd.toMillis(), available: isAvailable, description: description}
+            });
+        }
     }
 
     function handleRemoveException(elementNum) {
         return function() {
-            let updatedPerson = JSON.parse(JSON.stringify(data));
-            updatedPerson.exceptions.splice(elementNum, 1);
-            submitChanges(updatedPerson);
+            setQuery({
+                path: "/people/removeException",
+                data: {name: name, index: elementNum}
+            });
         };
     }
 
-    function renderWeekDay(dayString, dayInt) {
+    function renderWeek() {
+        let avails = [[], [], [], [], [], [], []];
+        let indexesArray = [[], [], [], [], [], [], []];
+        for (let i = 0; i < data.week.length; i++) {
+            let wtStart = localWeekTime(data.week[i].start);
+            let wtEnd = localWeekTime(data.week[i].end);
+            avails[wtStart.weekday() - 1].push({start: wtStart, end: wtEnd});
+            indexesArray[wtStart.weekday() - 1].push(i);
+        }
+        let jsx = [];
+        const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        for (let i = 0; i < 7; i++) {
+            jsx.push(
+                <Tab eventKey={daysOfWeek[i]} title={daysOfWeek[i]}>
+                    {renderWeekDay(daysOfWeek[i], i, avails[i], indexesArray[i])}
+                </Tab>
+            );
+        }
+        return (
+            <Tabs defaultActiveKey="Monday">
+                {jsx}
+            </Tabs>
+        );
+    }
+
+    function renderWeekDay(dayString, dayInt, dataArray, indexes) {
         let jsx = []
-        if (data.weekly[dayInt].length === 0) {
+        if (dataArray.length === 0) {
             jsx.push(<ListGroup.Item>No available time.</ListGroup.Item>)
         }
         else {
-            for (let i = 0; i < data.weekly[dayInt].length; i++) {
-                jsx.push(<ListGroup.Item><Button onClick={handleRemoveAvailability(dayInt, i)} variant="danger" type="button">x</Button>{`${secondsToString(data.weekly[dayInt][i][0])} to ${secondsToString(data.weekly[dayInt][i][1])}`}</ListGroup.Item>);
+            for (let i = 0; i < dataArray.length; i++) {
+                let startTime = dataArray[i].start.toLocaleString(DateTime.TIME_SIMPLE);
+                let endTime = dataArray[i].end.toLocaleString(DateTime.TIME_SIMPLE);
+                jsx.push(<ListGroup.Item><Button onClick={handleRemoveAvailability(indexes[i])} variant="danger" type="button">x</Button>{`${startTime} to ${endTime}`}</ListGroup.Item>);
             }
         }
 
@@ -180,7 +207,7 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
                         </Row>
                         <Row>
                             <Form.Label>Date</Form.Label>
-                            <Form.Control type="date" placeholder="Date" id="exception-date"/>
+                            <Form.Control defaultValue={localDateFromValues().toFormat("yyyy-MM-dd")} type="date" placeholder="Date" id="exception-date"/>
                         </Row>
                         <Row>
                             <Form.Label>Start time</Form.Label>
@@ -219,17 +246,19 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
             let tabItems = [];
             for (let i = 0; i < data.exceptions.length; i++) {
                 let variant = "success";
-                if (!data.exceptions[i][3]) {
+                if (!data.exceptions[i].available) {
                     variant = "warning"
                 }
+                let startDate = localDate(data.exceptions[i].start).toLocaleString(DateTime.DATETIME_MED);
+                let endDate = localDate(data.exceptions[i].end).toLocaleString(DateTime.DATETIME_MED);
                 listItems.push(
                     <ListGroup.Item variant={variant} action href={`#exceptionLink${i}`}>
-                        <Button onClick={handleRemoveException(i)} variant="danger" type="button">x</Button>{`${data.exceptions[i][0].split(' ')[0]}: ${militaryToNormal(data.exceptions[i][0].split(' ')[1])} to ${militaryToNormal(data.exceptions[i][1].split(' ')[1])}`}
+                        <Button onClick={handleRemoveException(i)} variant="danger" type="button">x</Button>{`${startDate} to ${endDate}`}
                     </ListGroup.Item>
                 );
                 tabItems.push(
                     <Tab.Pane eventKey={`#exceptionLink${i}`}>
-                        {data.exceptions[i][2]}
+                        {data.exceptions[i].description}
                     </Tab.Pane>
                 );
             }
@@ -253,6 +282,20 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
         return jsx;
     }
 
+    function renderCategoryButtons() {
+        return (
+            <ButtonGroup className="mr-2" aria-label="First group">
+                <Button onClick={() => {handleCategoryClick("primary")}} active={data.categories.includes(categoryMap["primary"])} variant="outline-primary" type="button"></Button>
+                <Button onClick={() => {handleCategoryClick("secondary")}} active={data.categories.includes(categoryMap["secondary"])} variant="outline-secondary" type="button"></Button>
+                <Button onClick={() => {handleCategoryClick("success")}} active={data.categories.includes(categoryMap["success"])} variant="outline-success" type="button"></Button>
+                <Button onClick={() => {handleCategoryClick("warning")}} active={data.categories.includes(categoryMap["warning"])} variant="outline-warning" type="button"></Button>
+                <Button onClick={() => {handleCategoryClick("danger")}} active={data.categories.includes(categoryMap["danger"])} variant="outline-danger" type="button"></Button>
+                <Button onClick={() => {handleCategoryClick("info")}} active={data.categories.includes(categoryMap["info"])} variant="outline-info" type="button"></Button>
+                <Button onClick={() => {handleCategoryClick("dark")}} active={data.categories.includes(categoryMap["dark"])} variant="outline-dark" type="button"></Button>
+            </ButtonGroup>
+        );
+    }
+
     function accordionToggleOnClick() {
         if (getActiveKey() === number.toString()) setActiveKey("-1");
         else setActiveKey(number.toString());
@@ -263,7 +306,7 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
             <Card.Header>
                 <Accordion.Toggle onClick={accordionToggleOnClick} as={Card.Header} eventKey={number.toString()}>
                     <Button variant="light" type="button" block>
-                        <h2>{data.name}</h2>{categoryBadges()}
+                        <h2>{name}</h2>{categoryBadges()}
                     </Button>    
                 </Accordion.Toggle>
             </Card.Header>
@@ -274,44 +317,14 @@ function Person({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(()
                             <Form onSubmit={(event) => {event.preventDefault()}}>
                                 <Form.Group>
                                     <Form.Label>Name</Form.Label>
-                                    <Form.Control type="text" defaultValue={data.name} onBlur={handleNameChange} />
+                                    <Form.Control type="text" defaultValue={name} onBlur={handleNameChange} />
                                 </Form.Group>
                                 <Form.Group>
                                     <Form.Label>Categories</Form.Label>
-                                        <ButtonGroup className="mr-2" aria-label="First group">
-                                            <Button onClick={() => {handleCategoryClick("primary")}} active={data.categories[categoryMap["primary"]]} variant="outline-primary" type="button"></Button>
-                                            <Button onClick={() => {handleCategoryClick("secondary")}} active={data.categories[categoryMap["secondary"]]} variant="outline-secondary" type="button"></Button>
-                                            <Button onClick={() => {handleCategoryClick("success")}} active={data.categories[categoryMap["success"]]} variant="outline-success" type="button"></Button>
-                                            <Button onClick={() => {handleCategoryClick("warning")}} active={data.categories[categoryMap["warning"]]} variant="outline-warning" type="button"></Button>
-                                            <Button onClick={() => {handleCategoryClick("danger")}} active={data.categories[categoryMap["danger"]]} variant="outline-danger" type="button"></Button>
-                                            <Button onClick={() => {handleCategoryClick("info")}} active={data.categories[categoryMap["info"]]} variant="outline-info" type="button"></Button>
-                                            <Button onClick={() => {handleCategoryClick("dark")}} active={data.categories[categoryMap["dark"]]} variant="outline-dark" type="button"></Button>
-                                        </ButtonGroup>
+                                        {renderCategoryButtons()}
                                 </Form.Group>
                             </Form>
-                            <Tabs defaultActiveKey="Monday">
-                                <Tab eventKey="Monday" title="Monday">
-                                    {renderWeekDay("Monday", 0)}
-                                </Tab>
-                                <Tab eventKey="Tuesday" title="Tuesday">
-                                    {renderWeekDay("Tuesday", 1)}
-                                </Tab>
-                                <Tab eventKey="Wednesday" title="Wednesday">
-                                    {renderWeekDay("Wednesday", 2)}
-                                </Tab>
-                                <Tab eventKey="Thursday" title="Thursday">
-                                    {renderWeekDay("Thursday", 3)}
-                                </Tab>
-                                <Tab eventKey="Friday" title="Friday">
-                                    {renderWeekDay("Friday", 4)}
-                                </Tab>
-                                <Tab eventKey="Saturday" title="Saturday">
-                                    {renderWeekDay("Saturday", 5)}
-                                </Tab>
-                                <Tab eventKey="Sunday" title="Sunday">
-                                    {renderWeekDay("Sunday", 6)}
-                                </Tab>
-                            </Tabs>
+                            {renderWeek()}
                             {renderExceptions()}
                         </Card.Body>
                     </Card>

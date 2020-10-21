@@ -1,47 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
-import axios from 'axios';
-import momentTZ from 'moment-timezone';
 import EmailAndPassword from './EmailAndPassword';
 import { useHistory } from 'react-router-dom';
 import config from '../config';
+import { executeQuery } from '../utilities';
 
-function Login() {
+function Login({setLoggedIn=() => {}}) {
+    const [query, setQuery] = useState(null);
+
     let history = useHistory();
 
+    useEffect(executeQuery(query), [query]);
+
     function signUpHandler(email, password) {
-        axios.post('/login/signUp', {'email': email, 'password': password, timezone: momentTZ.tz.guess()}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-        .then(function(response) {
-            if (response.data === 0) {
-                window.alert(`Email verification sent to ${email}`);
+        setQuery({
+            path: "/publicPost/signUp",
+            data: {email: email, password: password},
+            onResponse: (res) => {
+                switch(res.data) {
+                    case 0:
+                        window.alert(`Email verification sent to ${email}`);
+                        break;
+                    case 1:
+                        window.alert('Account already exists.');
+                        break;
+                    case 2:
+                        window.alert('Verification already sent to this email.');
+                        break;
+                    default:
+                        window.alert(res.data);
+                        break;
+                }
             }
-            else if (response.data === 1) {
-                window.alert('Account already exists.');
-            }
-            else {
-                window.alert('Error creating account.');
-            }
-        })
-        .catch(function() {
-            window.alert('Client error.');
         });
     }
 
     function loginHandler(email, password) {
-        axios.post('/login/login', {'email': email, 'password': password}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-        .then(function(response) {
-            if (response.data === 0) {
-                history.push("/Calendar");
+        setQuery({
+            path: "/publicPost/login",
+            data: {email: email, password: password},
+            onResponse: (res) => {
+                switch(res.data) {
+                    case 0:
+                        setLoggedIn(true);
+                        history.push("/Calendar");
+                        break;
+                    case 1:
+                        window.alert('Email or password is incorrect.');
+                        break;
+                    default:
+                        window.alert(res.data);
+                        break;
+                }
             }
-            else if (response.data === 1) {
-                window.alert('Email or password is incorrect.');
-            }
-            else {
-                window.alert('Error logging in.');
-            }
-        })
-        .catch(function() {
-            window.alert('Client error.');
         });
     }
 

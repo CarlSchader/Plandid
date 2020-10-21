@@ -1,65 +1,57 @@
 const express = require('express');
-const { mongodbConfig } = require('../config');
-const database = require('../database');
+const db = require('../database');
+const { categoryIsOkay, checkName } = require('../utilities');
 
 const router = express.Router();
 
-router.post('/addTask', async function(req, res) {
-    let newName = req.body.task.name.trim();
-    if (newName.length < 1) {
-        res.json("No name given.\n")
-        return;
-    }
-    for (let i = 0; i < req.body.currentSchedule.tasks.length; i++) {
-        if (req.body.currentSchedule.tasks[i].name === newName) {
-            res.json("Name already being used.\n");
-            return;
-        }
-    }
-    await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number}, {$push: {tasks: req.body.task}});
-    res.json(null);
+// userID, scheduleName
+router.post("/getTasks", async function(req, res) {
+    res.json((await db.readTasksRecord(req.body.userID, req.body.scheduleName)).tasks);
 });
 
-router.post('/changeName', async function(req, res) {
-    let newName = req.body.input.name.trim();
-    
-    // Check name length.
-    if (newName.length < 1) {
-        res.json('Name cannot be empty.\n');
-        return;
+// userID, scheduleName, name, category
+router.post("/addTask", async function(req, res) {
+    let name = req.body.name.trim();
+    if (!checkName(name, (await db.readTasksRecord(req.body.userID, req.body.scheduleName)).tasks)) {
+        return res.json(1);
     }
-
-    // Check if name already exists.
-    for (let i = 0; i < req.body.currentSchedule.tasks.length; i++) {
-        if (i !== req.body.input.taskNumber &&  req.body.currentSchedule.tasks[i].name === newName) {
-            res.json('Name already exists.\n');
-            return;
-        }
+    else if (!categoryIsOkay(req.body.category)) {
+        return res.json(2);
     }
-
-    let updatedTask = JSON.parse(JSON.stringify(req.body.task));
-    updatedTask.name = newName;
-    await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number, tasks: req.body.task}, {$set: {"tasks.$": updatedTask}});
-    res.json(null);
+    else {
+        await db.addTask(req.body.userID, req.body.scheduleName, name, req.body.category);
+        return res.json(0);
+    }
 });
 
-router.post('/changeCategory', async function(req, res) {
-    // Check if category is correct.
-    const categories = new Set(["", "primary", "secondary", "success", "warning", "danger", "info", "dark"]);
-    if (!categories.has(req.body.input.category)) {
-        res.json("Invalid category.\n");
-        return
-    }
-
-    let updatedTask = JSON.parse(JSON.stringify(req.body.task));
-    updatedTask.category = req.body.input.category;
-    await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number, tasks: req.body.task}, {$set: {"tasks.$": updatedTask}});
-    res.json(null);
+// userID, scheduleName, name
+router.post("/removeTask", async function(req, res) {
+    await db.removeTask(req.body.userID, req.body.scheduleName, req.body.name);
+    return res.json(0);
 });
 
-router.post('/removeTask', async function(req, res) {
-    await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number}, { $pull: { 'tasks': { name: req.body.task.name } }});
-    res.json(null);
+// userID, scheduleName, oldName, newName
+router.post("/changeName", async function(req, res) {
+    let newName = req.body.newName.trim();
+    if (!checkName(newName, (await db.readTasksRecord(req.body.userID, req.body.scheduleName)).tasks)) {
+        return res.json(1);
+    }
+    else {
+        await db.changeTaskName(req.body.userID, req.body.scheduleName, req.body.oldName, newName);
+        return res.json(0);
+    }
+});
+
+// userID, scheduleName, name, category
+router.post("/changeCategory", async function(req, res) {
+    let newCategory = req.body.category;
+    if (!categoryIsOkay(newCategory)) {
+        return res.json(1);
+    }
+    else {
+        await db.changeTaskCategory(req.body.userID, req.body.scheduleName, req.body.name, newCategory);
+        return res.json(0);
+    }
 });
 
 module.exports = router;

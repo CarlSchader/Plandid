@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Switch, Route, useHistory, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import config from '../config';
+import { Switch, Route, useHistory } from 'react-router-dom';
 
 import Landing from './Landing';
 import Login from './Login';
@@ -11,62 +9,45 @@ import Tasks from './Tasks';
 import Week from './Week';
 import Exceptions from './Exceptions';
 import AppNav from './AppNav';
-
-let placeHolderSchedule = {
-    email: 'john@doe.mail',
-    password: 'password',
-    name: 'Schedule 1'
-};
+import { executeQuery } from '../utilities';
 
 function Basis() {
-    const [currentSchedule, setCurrentSchedule] = useState(placeHolderSchedule);
     const [loggedIn, setLoggedIn] = useState(false);
-    const [update, setUpdate] = useState(false);
 
-    function updateApp() {
-        setUpdate(!update);
-    }
-
-    // Handle session
     let history = useHistory();
-    let location = useLocation();
-    useEffect(function() {
-        if (location.pathname !== '/Landing' && location.pathname !== '/Login') {
-            axios.post('/session', {}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-            .then(function(response) {
-                if (response.data === false) {
-                    history.push('/Landing');
-                }
-                else {
-                    setCurrentSchedule(response.data);
-                    setLoggedIn(true);
-                }
-            });
+
+    useEffect(executeQuery(null, {path: "/publicPost/isLoggedIn", data: {}, onResponse: (res) => {
+        if (res.data) {
+            setLoggedIn(true);
         }
-    }, [location.pathname, history, update]);
+        else {
+            setLoggedIn(false);
+            history.push('/Landing');
+        }
+    }}), [loggedIn]);
 
     if (loggedIn) {
         return (
             <div>
-                <AppNav updateApp={updateApp} currentSchedule={currentSchedule}/>
+                <AppNav />
                 <Switch>
                     <Route exact path="/Calendar">
                         <Calendar />
                     </Route>
                     <Route exact path="/People">
-                        <People updateApp={updateApp} currentSchedule={currentSchedule}/>
+                        <People />
                     </Route>
                     <Route exact path="/Tasks">
-                        <Tasks updateApp={updateApp} currentSchedule={currentSchedule}/>
+                        <Tasks />
                     </Route>
                     <Route exact path="/Week">
-                        <Week updateApp={updateApp} currentSchedule={currentSchedule}/>
+                        <Week />
                     </Route>
                     <Route exact path="/Exceptions">
-                        <Exceptions updateApp={updateApp} currentSchedule={currentSchedule}/>
+                        <Exceptions />
                     </Route>
                     <Route exact path ="/Login">
-                        <Login />
+                        <Login setLoggedIn={setLoggedIn}/>
                     </Route>
                     <Route exact path="/*">
                         <Landing />
@@ -79,7 +60,7 @@ function Basis() {
         return (
             <Switch>
                 <Route exact path ="/Login">
-                    <Login />
+                    <Login setLoggedIn={setLoggedIn}/>
                 </Route>
                 <Route exact path="/*">
                     <Landing />

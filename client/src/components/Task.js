@@ -1,39 +1,42 @@
 import React from 'react';
 import { Card, Accordion, Button, Form, ButtonGroup } from 'react-bootstrap';
-import axios from 'axios';
-import config from '../config';
+import { categoryMap, variants } from '../utilities';
 
-function Task({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() => {}), currentSchedule={}, data={}, number=-1}) {
-    function sendRequest(path, input) {
-        axios.post(path, {currentSchedule: currentSchedule, task: data, input: input}, {baseURL: config.url, withCredentials: true})
-        .then(function(response) {
-            if (response.data !== null) window.alert(response.data);
-            updateApp();
+function Task({setQuery=_ => {}, setActiveKey=(() => {}), getActiveKey=(() => {}), category=null, name="", number=-1}) {
+    function handleNameChange() {
+        setQuery({
+            path: "/tasks/changeName",
+            data: {oldName: name, newName: document.getElementById(`task-${number}-name`).value}
         });
     }
 
-    function handleNameChange() {
-        sendRequest('/tasks/changeName', {name: document.getElementById("task-name").value, taskNumber: number});
-    }
-
-    function handleCategoryChange(category) {
+    function handleCategoryChange(newCategory) {
         return function() {
-            if (data.category === category) sendRequest('/tasks/changeCategory', {category: ""});
-            else sendRequest('/tasks/changeCategory', {category: category});
+            newCategory = categoryMap[newCategory]
+            if (category === newCategory) {
+                newCategory = null;
+            }
+            setQuery({
+                path: "/tasks/changeCategory",
+                data: {name: name, category: newCategory}
+            });
         };
     }
 
     function handleRemoveTask() {
-        sendRequest('/tasks/removeTask', {});
+        setQuery({
+            path: "/tasks/removeTask",
+            data: {name: name}
+        });
         setActiveKey("-1")
     }
 
     function buttonVariant() {
-        if (data.category === "") {
+        if (category === null) {
             return "light";
         }
         else {
-            return "outline-" + data.category;
+            return "outline-" + variants[category];
         }
     }
 
@@ -47,7 +50,7 @@ function Task({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() =
             <Card.Header>
                 <Accordion.Toggle onClick={accordionToggleOnClick} as={Card.Header} eventKey={number.toString()}>
                     <Button variant={buttonVariant()} type="button" block>
-                        <h2>{data.name}</h2>
+                        <h2>{name}</h2>
                     </Button>    
                 </Accordion.Toggle>
             </Card.Header>
@@ -58,19 +61,19 @@ function Task({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() =
                             <Form onSubmit={(event) => {event.preventDefault()}}>
                                 <Form.Group>
                                     <Form.Label>Name</Form.Label>
-                                    <Form.Control type="text" defaultValue={data.name} onBlur={handleNameChange} id="task-name" />
+                                    <Form.Control type="text" defaultValue={name} onBlur={handleNameChange} id={`task-${number}-name`} />
                                 </Form.Group>
 
                                 <Form.Group>
                                     <Form.Label>Category</Form.Label>
                                         <ButtonGroup className="mr-2" aria-label="First group">
-                                            <Button onClick={handleCategoryChange("primary")} active={data.category === "primary"} variant="outline-primary" type="button"></Button>
-                                            <Button onClick={handleCategoryChange("secondary")} active={data.category === "secondary"} variant="outline-secondary" type="button"></Button>
-                                            <Button onClick={handleCategoryChange("success")} active={data.category === "success"} variant="outline-success" type="button"></Button>
-                                            <Button onClick={handleCategoryChange("warning")} active={data.category === "warning"} variant="outline-warning" type="button"></Button>
-                                            <Button onClick={handleCategoryChange("danger")} active={data.category === "danger"} variant="outline-danger" type="button"></Button>
-                                            <Button onClick={handleCategoryChange("info")} active={data.category === "info"} variant="outline-info" type="button"></Button>
-                                            <Button onClick={handleCategoryChange("dark")} active={data.category === "dark"} variant="outline-dark" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("primary")} active={category === 0} variant="outline-primary" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("secondary")} active={category === 1} variant="outline-secondary" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("success")} active={category === 2} variant="outline-success" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("warning")} active={category === 3} variant="outline-warning" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("danger")} active={category === 4} variant="outline-danger" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("info")} active={category === 5} variant="outline-info" type="button"></Button>
+                                            <Button onClick={handleCategoryChange("dark")} active={category === 6} variant="outline-dark" type="button"></Button>
                                         </ButtonGroup>
                                 </Form.Group>
                                 <Button onClick={handleRemoveTask} variant="danger" size="lg" type="button" block>Delete</Button>

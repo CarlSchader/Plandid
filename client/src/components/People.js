@@ -1,17 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Container, Row, Col, Accordion, Popover, InputGroup, FormLabel, FormControl, ButtonGroup, OverlayTrigger } from 'react-bootstrap';
 import Person from './Person';
-import axios from 'axios';
-import config from '../config';
-
-function personSchema(name, categories=new Array(7), weekly=[[], [], [], [], [], [], []], exceptions=[]) {
-    return {
-        name: name,
-        categories: categories,
-        weekly: weekly,
-        exceptions: exceptions
-    };
-}
+import { executeQuery } from '../utilities';
 
 const categoryMap = {
     primary: 0,
@@ -23,34 +13,44 @@ const categoryMap = {
     dark: 6
 };
 
-function People({updateApp=(() => {}), currentSchedule={}}) {
-    const [selectedCategories, setSelectedCategories] = useState(new Array(7));
+function People() {
+    const [query, setQuery] = useState(null);
+    const [people, setPeople] = useState({});
+    const [selectedCategories, setSelectedCategories] = useState([]);
     const [newName, setNewName] = useState("");
     const [activeKey, setActiveKey] = useState("-1");
 
+    useEffect(executeQuery(query, {path: "/people/getPeople", data: {}, onResponse: (res) => {
+        setPeople(res.data);
+    }}), [query]);
+
     function peopleJSX() {
         let jsx = [];
-        for (let i = 0; i < currentSchedule.people.length; i++) {
-            jsx.push(<Person updateApp={updateApp} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} currentSchedule={currentSchedule} data={currentSchedule.people[i]} number={i} />);
+        let i = 0;
+        for (let name in people) {
+            jsx.push(<Person name={name} setQuery={setQuery} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} data={people[name]} number={i} />);
+            i++;
         }
         return jsx;
     }
 
     function handleAddPerson() {
-        axios.post('/people/addPerson', {currentSchedule: currentSchedule, person: personSchema(newName, selectedCategories)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-            .then(function(response) {
-                if (response.data !== null) window.alert(response.data);
-                updateApp();
-            });
+        setQuery({
+            path: "people/addPerson",
+            data: {name: newName, categories: selectedCategories}
+        });
+        setNewName("");
+        setSelectedCategories([]);
     }
 
     function selectCategoryClick(category) {
         let newArray = JSON.parse(JSON.stringify(selectedCategories));
-        if (newArray[categoryMap[category]]) {
-            newArray[categoryMap[category]] = null;
+        let index = selectedCategories.findIndex(x => x === categoryMap[category]);
+        if (index === -1) {
+            newArray.push(categoryMap[category]);
         }
         else {
-            newArray[categoryMap[category]] = category;
+            newArray.splice(index, 1);
         }
         setSelectedCategories(newArray);
     }
@@ -67,13 +67,13 @@ function People({updateApp=(() => {}), currentSchedule={}}) {
             </InputGroup>    
             <FormLabel>Categories</FormLabel>
             <ButtonGroup className="mr-2" aria-label="First group">
-                <Button onClick={() => {selectCategoryClick("primary")}} active={selectedCategories[categoryMap["primary"]]} variant="outline-primary" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("secondary")}} active={selectedCategories[categoryMap["secondary"]]} variant="outline-secondary" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("success")}} active={selectedCategories[categoryMap["success"]]} variant="outline-success" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("warning")}} active={selectedCategories[categoryMap["warning"]]} variant="outline-warning" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("danger")}} active={selectedCategories[categoryMap["danger"]]} variant="outline-danger" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("info")}} active={selectedCategories[categoryMap["info"]]} variant="outline-info" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("dark")}} active={selectedCategories[categoryMap["dark"]]} variant="outline-dark" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("primary")}} active={selectedCategories.includes(categoryMap["primary"])} variant="outline-primary" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("secondary")}} active={selectedCategories.includes(categoryMap["secondary"])} variant="outline-secondary" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("success")}} active={selectedCategories.includes(categoryMap["success"])} variant="outline-success" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("warning")}} active={selectedCategories.includes(categoryMap["warning"])} variant="outline-warning" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("danger")}} active={selectedCategories.includes(categoryMap["danger"])} variant="outline-danger" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("info")}} active={selectedCategories.includes(categoryMap["info"])} variant="outline-info" type="button"></Button>
+                <Button onClick={() => {selectCategoryClick("dark")}} active={selectedCategories.includes(categoryMap["dark"])} variant="outline-dark" type="button"></Button>
             </ButtonGroup>
             <Button variant="primary" type="button" onClick={handleAddPerson}>Add</Button>
             </Popover.Content>

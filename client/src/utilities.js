@@ -1,33 +1,164 @@
 import axios from 'axios';
 import config from './config';
+import { DateTime } from 'luxon';
 
-
-// onFinish takes a response argument.
-function sendRequest(path, data, onFinish) {
-    axios.post(path, data, {baseURL: config.url, withCredentials: true}).then(onFinish);
+function modulo(n, m) {
+    return ((n % m) + m) % m;
 }
 
-function secondsToString(seconds) {
-    let suffix = "AM";
-    let hours = Math.floor(seconds / 3600);
-    if (hours > 11) suffix = "PM";
-    hours = hours % 12;
-    if (hours === 0) hours = 12;
-    let minutes = `${Math.floor((seconds % 3600) / 60)}`
-    if (minutes < 10) minutes = `0${minutes}`;
-    return `${hours}:${minutes} ${suffix}`;
+function localDateFromValues({
+    year = DateTime.local().year,
+    month = DateTime.local().month, // starts at 1
+    day = DateTime.local().day, // starts at 1
+    hour = 0,
+    minute = 0,
+    second = 0,
+    millisecond = 0,
+    weekday = null, // starts at 1
+} = {}) {
+    if (weekday !== null) {
+        let dt = DateTime.local(year, month, day);
+        return dt.set({weekday: weekday, hour: hour, minute: minute, second: second, millisecond: millisecond});
+    }
+    else {
+        return DateTime.local(year, month, day, hour, minute, second, millisecond);
+    }
 }
 
-function militaryToNormal(string) {
-    let splitString = string.split(':');
-    let hours = parseInt(splitString[0]);
-    let suffix = "AM";
-    if (hours > 11) suffix = "PM";
-    hours = hours%12;
-    if (hours === 0) hours = 12;
-    let minutes = parseInt(splitString[1]);
-    if (minutes < 10) minutes = `0${minutes}`;
-    return `${hours}:${minutes} ${suffix}`;
+function localDate(utc) {
+    return DateTime.fromMillis(utc).setZone(DateTime.local().zoneName);
+}
+
+function localWeekTime(weekMillis) {
+    return {
+        totalMilliseconds: modulo(weekMillis + (DateTime.local().offset * 60000), 604800000),
+        weekday: function() {
+            if (this.totalMilliseconds === 0) {
+                return 1;
+            }
+            else {
+                return Math.floor(this.totalMilliseconds / 86400000) + 1;
+            }
+        },
+        hour: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(Math.floor(this.totalMilliseconds / 3600000), 24);
+            }
+        },
+        minute: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(Math.floor(this.totalMilliseconds / 60000), 60);
+            }
+        },
+        second: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(Math.floor(this.totalMilliseconds / 1000), 60);
+            }
+        },
+        millisecond: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(this.totalMilliseconds, 1000);
+            }
+        },
+        toLocaleString: function(format=null) {
+            if (format === null) {
+                return DateTime.local().set({weekday: this.weekday(), hour: this.hour(), minute: this.minute(), second: this.second(), millisecond: this.millisecond()}).toLocaleString();
+            }
+            else {
+                return DateTime.local().set({weekday: this.weekday(), hour: this.hour(), minute: this.minute(), second: this.second(), millisecond: this.millisecond()}).toLocaleString(format);
+            }
+        }
+    };
+}
+
+function executeQuery(query=null, afterQuery=null) {
+    function executeQueries() {
+        if (Array.isArray(query)) {
+            for (let i = 0; i < query.length; i++) {
+                if (i === query.length - 1) {
+                    sendRequest(query[i].path, query[i].data, (res) => {
+                        if ("onResponse" in query) {
+                            query[i].onResponse(res);
+                        }
+                        executeAfterQueries();
+                    });
+                }
+                else {
+                    if ("onResponse" in query[i]) {
+                        sendRequest(query[i].path, query[i].data, query[i].onResponse);
+                    }
+                    else {
+                        sendRequest(query[i].path, query[i].data);
+                    }
+                }
+            }
+        }
+        else {
+            sendRequest(query.path, query.data, (res) => {
+                if ("onResponse" in query) {
+                    query.onResponse(res);
+                }
+                executeAfterQueries();
+            });
+        }
+    }
+    function executeAfterQueries() {
+        if (afterQuery !== null) {
+            if (Array.isArray(afterQuery)) {
+                for (let i = 0; i < afterQuery.length; i++) {
+                    if ("onResponse" in afterQuery[i]) {
+                        sendRequest(afterQuery[i].path, afterQuery[i].data, afterQuery[i].onResponse);
+                    }
+                    else {
+                        sendRequest(afterQuery[i].path, afterQuery[i].data);
+                    }
+                }
+            }
+            else {
+                if ("onResponse" in afterQuery) {
+                    sendRequest(afterQuery.path, afterQuery.data, afterQuery.onResponse);
+                }
+                else {
+                    sendRequest(afterQuery.path, afterQuery.data);
+                }
+            }
+        }
+    }
+    return function() {
+        if (query !== null) {
+            executeQueries();
+        }
+        else {
+            executeAfterQueries();
+        }
+    };
+}
+
+// onResponse takes a response argument.
+function sendRequest(path, data, onResponse=function(res) {if (res.data !== 0) window.alert(res.data)}) {
+    axios.post(path, data, {baseURL: config.url, withCredentials: true}).then(onResponse);
+}
+
+function variantFromCategory(category, defaultVariant="") {
+    let variant = variants[category];
+    if (variant === undefined) {
+        return defaultVariant;
+    }
+    else {
+        return variant;
+    }
 }
 
 const categoryMap = {
@@ -40,9 +171,16 @@ const categoryMap = {
     dark: 6
 }
 
+const variants = ["primary", "secondary", "success", "warning", "danger", "info", "dark"];
+
 export {
+    executeQuery,
     sendRequest,
-    secondsToString,
-    militaryToNormal,
-    categoryMap
+    categoryMap,
+    variants,
+    variantFromCategory,
+    localDate,
+    localDateFromValues,
+    localWeekTime,
+    modulo
 }

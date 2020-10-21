@@ -1,13 +1,15 @@
+const { nextTick } = require('process');
+
 (async function() {
     const express = require('express');
     const path = require('path');
     const cors = require('cors');
     const session = require('express-session');
     const config = require('./config');
-    const database = require('./database');
+    const db = require('./database');
 
     // Connect to database
-    await database.connect();
+    await db.connect();
 
     app = express();
 
@@ -23,38 +25,51 @@
         resave: false,
         saveUninitialized: true,
         cookie: { secure: false,
-        maxAge: 3 * 60 * 60 * 1000,
+        maxAge: 6 * 60 * 60 * 1000,
         sameSite: true
         }
     }));
-
     // Routes
-    app.use('/login', require('./routes/login'));
-    app.use('/appNav', require('./routes/appNav'));
+    app.use('/publicPost', require('./routes/publicPost'));
+
+    app.post('*', async function(req, res, next) {
+        if (req.session && req.session.sessionID) {
+            let userID = await db.userIDfromSessionID(req.session.sessionID);
+            if (userID !== null) {
+                let scheduleName = (await db.readUserDataRecordFromID(userID)).lastUsedSchedule;
+                if (await db.readScheduleRecord(userID, scheduleName) === null) {
+                    scheduleName = (await db.readRandomScheduleRecord(userID)).scheduleName;
+                    await db.changeUserDataLastUsedSchedule(userID, scheduleName);
+                }
+                req.body.userID = userID;
+                req.body.scheduleName = scheduleName;
+                return next();
+            }
+            else {
+                return res.json(-1);
+            }
+        }
+        else {
+            return res.json(-1);
+        }
+    })
+
+    app.use('/schedule', require('./routes/schedule'));
     app.use('/people', require('./routes/people'));
     app.use('/tasks', require('./routes/tasks'));
     app.use('/week', require('./routes/week'));
     app.use('/exceptions', require('./routes/exceptions'));
 
     app.get('/', function(req, res) {
-        res.sendFile(config.indexHTMLPath);
+        return res.sendFile(config.indexHTMLPath);
     });
 
     app.get('*', function(req, res) {
         res.sendFile(path.join(config.clientBuildPath, req.url), function(error) {
             if (error) {
-                res.sendFile(config.indexHTMLPath);
+                return res.sendFile(config.indexHTMLPath);
             }
         });
-    });
-
-    app.post('/session', async function(req, res) {
-        if (req.session && req.session.user) {
-            res.json(await database.read(config.mongodbConfig.schedulesCollectionName, {email: req.session.user.email, password: req.session.user.password, number: 0}));
-        }
-        else {
-            res.json(false);
-        }
     });
 
     // Listen on a port

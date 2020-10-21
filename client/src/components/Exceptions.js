@@ -1,27 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Accordion, Button, Popover, Form, OverlayTrigger } from 'react-bootstrap';
-import { sendRequest } from '../utilities';
+import { executeQuery, localDateFromValues } from '../utilities';
 import Exception from './Exception';
 
-function Exceptions({updateApp=(() => {}), currentSchedule={}}) {
+function Exceptions() {
+    const [query, setQuery] = useState(null);
+    const [exceptions, setExceptions] = useState([]);
+    const [tasks, setTasks] = useState({});
     const [activeKey, setActiveKey] = useState("-1");
 
-    function onResponse(response) {
-        if (response.data !== null) window.alert(response.data);
-        updateApp();
-    }
+    useEffect(executeQuery(query, [
+        {path: "/exceptions/getExceptions", data: {}, onResponse: res => {setExceptions(res.data)}},
+        {path: "/tasks/getTasks", data: {}, onResponse: res => {setTasks(res.data)}}
+    ]), [query]);
 
     function handleAddException() {
-        let date = document.getElementById("exception-date").value;
+        let date = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
         let description = document.getElementById("exception-description").value;
-        let exception = {date: date, description: description, jobs: []};
-        sendRequest("/exceptions/addException", {currentSchedule: currentSchedule, exception: exception}, onResponse);
+        let dtStart = localDateFromValues({year: date[0], month: date[1], day: date[2]});
+        let dtEnd = dtStart.set({hour: 23, minute: 59, second: 69, millisecond: 999});
+        setQuery({
+            path: "/exceptions/addException", 
+            data: {utcStart: dtStart.toMillis(), utcEnd: dtEnd.toMillis(), description: description}
+        });
     }
 
     function exceptionsJSX() {
         let jsx = [];
-        for (let i = 0; i < currentSchedule.exceptions.length; i++) {
-            jsx.push(<Exception setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} updateApp={updateApp} currentSchedule={currentSchedule} data={currentSchedule.exceptions[i]} number={i} />);
+        for (let i = 0; i < exceptions.length; i++) {
+            jsx.push(<Exception setQuery={setQuery} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} exception={exceptions[i]} tasks={tasks} number={i} />);
         }
         return jsx;
     }
@@ -34,7 +41,7 @@ function Exceptions({updateApp=(() => {}), currentSchedule={}}) {
                     <Col>
                         <Row>
                             <Form.Label>Date</Form.Label>
-                            <Form.Control type="date" placeholder="Date" id="exception-date"/>
+                            <Form.Control defaultValue={localDateFromValues().toFormat("yyyy-MM-dd")} type="date" placeholder="Date" id="exception-date"/>
                         </Row>
                         <Row>
                             <Form.Label>Description (optional)</Form.Label>

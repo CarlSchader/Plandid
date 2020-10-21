@@ -1,40 +1,54 @@
 import React, { useState } from 'react';
+import { DateTime } from 'luxon';
 import { Card, Accordion, Button, Form, ListGroup, Row, Col, Badge, Dropdown, Popover, FormLabel, OverlayTrigger } from 'react-bootstrap';
-import { sendRequest, secondsToString } from '../utilities';
+import { localDate, localDateFromValues, variantFromCategory } from '../utilities';
 
-function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=(() => {}), currentSchedule={}, data={}, number=-1}) {
+function Exception({setQuery=_ => {}, setActiveKey=_ => {}, getActiveKey=_ => {}, exception={}, tasks={}, number=-1}) {
     const [selectedTask, setSelectedTask] = useState(null);
 
-    function onResponse(response) {
-        if (response.data !== null) window.alert(response.data);
-        updateApp();
-    }
-
     function handleDateChange() {
-        sendRequest('/exceptions/changeDate', {currentSchedule: currentSchedule, date: document.getElementById("exception-date").value, exceptionNumber: number}, onResponse);
+        let date = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
+        let utcStart = localDateFromValues({year: date[0], month: date[1], day: date[2]}).toMillis();
+        setQuery({
+            path: "/exceptions/changeStartDate", 
+            data: {index: number, utcStart: utcStart}
+        });
     }
 
     function handleDescriptionChange() {
-        sendRequest('/exceptions/changeDescription', {currentSchedule: currentSchedule, description: document.getElementById("exception-description").value, exceptionNumber: number}, onResponse);
+        setQuery({
+            path: "/exceptions/changeDescription",
+            data: {index: number, newDescription: document.getElementById("exception-description").value}
+        });
     }
 
     function handleRemoveException() {
-        sendRequest('/exceptions/removeException', {currentSchedule: currentSchedule, exceptionNumber: number}, onResponse);
-        setActiveKey("-1")
+        setQuery({
+            path: "/exceptions/removeException",
+            data: {index: number}
+        });
+        setActiveKey("-1");
     }
 
     function handleRemoveJob(elementNum) {
         return function() {
-            sendRequest('/exceptions/removeJob', {currentSchedule: currentSchedule, exceptionNumber: number, elementNum: elementNum}, onResponse);
+            setQuery({
+                path: "/exceptions/removeJob",
+                data: {index: number, jobIndex: elementNum}
+            });
         };
     }
 
     function handleAddJob() {
-        let splitArrayStart = document.getElementById(`addTask-start-time`).value.split(':');
-        let splitArrayEnd = document.getElementById(`addTask-end-time`).value.split(':');
-        let startSecs = (parseInt(splitArrayStart[0]) * 3600) + (parseInt(splitArrayStart[1]) * 60);
-        let endSecs = (parseInt(splitArrayEnd[0]) * 3600) + (parseInt(splitArrayEnd[1]) * 60);
-        sendRequest("/exceptions/addjob", {currentSchedule: currentSchedule, job: [startSecs, endSecs, selectedTask], exceptionNumber: number}, onResponse);
+        let startTime = document.getElementById(`addTask-start-time`).value.split(':').map(x => parseInt(x));
+        let endTime = document.getElementById(`addTask-end-time`).value.split(':').map(x => parseInt(x));
+        let dt = localDate(exception.start);
+        let utcStart = localDateFromValues({year: dt.year, month: dt.month, day: dt.day, hour: startTime[0], minute: startTime[1]}).toMillis();
+        let utcEnd = localDateFromValues({year: dt.year, month: dt.month, day: dt.day, hour: endTime[0], minute: endTime[1]}).toMillis();
+        setQuery({
+            path: "/exceptions/addJob",
+            data: {index: number, utcStart: utcStart, utcEnd: utcEnd, taskName: selectedTask}
+        });
     }
 
     function accordionToggleOnClick() {
@@ -44,9 +58,10 @@ function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=
 
     function renderJobs() {
         let jsx = []
-        if (currentSchedule.exceptions[number].jobs.length < 1) jsx.push(<ListGroup.Item>No tasks added yet.</ListGroup.Item>);
+        if (exception.jobs.length < 1) jsx.push(<ListGroup.Item>No tasks added yet.</ListGroup.Item>);
         else {
-            for (let i = 0; i < data.jobs.length; i++) {
+            for (let i = 0; i < exception.jobs.length; i++) {
+                let job = exception.jobs[i];
                 jsx.push(
                     <ListGroup.Item>
                         <Row>
@@ -54,7 +69,7 @@ function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=
                                 <h2><Button onClick={handleRemoveJob(i)} variant="danger" type="button">x</Button></h2>
                             </Col>
                             <Col>
-                                <h2><Badge variant={data.jobs[i][2].category}>{`${data.jobs[i][2].name}: ${secondsToString(data.jobs[i][0])} to ${secondsToString(data.jobs[i][1])}`}</Badge></h2>
+                                <h2><Badge variant={variantFromCategory(job.category)}>{`${job.taskName}: ${localDate(job.start).toLocaleString(DateTime.TIME_SIMPLE)} to ${localDate(job.end).toLocaleString(DateTime.TIME_SIMPLE)}`}</Badge></h2>
                             </Col>
                         </Row>
                     </ListGroup.Item>
@@ -66,10 +81,10 @@ function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=
 
     function renderAddTaskList() {
         let jsx = [];
-        for (let i = 0; i < currentSchedule.tasks.length; i++) {
+        for (let taskName in tasks) {
             jsx.push(
-                <Dropdown.Item onSelect={() => {setSelectedTask(currentSchedule.tasks[i])}}>
-                    <h1><Badge variant={currentSchedule.tasks[i].category}>{currentSchedule.tasks[i].name}</Badge></h1>
+                <Dropdown.Item onSelect={() => {setSelectedTask(taskName)}}>
+                    <h1><Badge variant={variantFromCategory(tasks[taskName])}>{taskName}</Badge></h1>
                 </Dropdown.Item>
             );
         }
@@ -93,7 +108,7 @@ function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=
                         <Row>
                             {/* <Form.Label>Task</Form.Label> */}
                             <Dropdown>
-                                <Dropdown.Toggle variant={(() => {if (selectedTask === null) return "outline-dark"; else return selectedTask.category})()}>
+                                <Dropdown.Toggle variant={variantFromCategory(tasks[selectedTask])}>
                                     {(() => {if (selectedTask === null) return "Select Task"; else return selectedTask.name})()}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
@@ -113,7 +128,7 @@ function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=
             <Card.Header>
                 <Accordion.Toggle onClick={accordionToggleOnClick} as={Card.Header} eventKey={number.toString()}>
                     <Button variant="light" type="button" block>
-                        <h2>{data.date}</h2>
+                        <h2>{localDate(exception.start).toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}</h2>
                     </Button>    
                 </Accordion.Toggle>
             </Card.Header>
@@ -124,11 +139,11 @@ function Exception({updateApp=(() => {}), setActiveKey=(() => {}), getActiveKey=
                             <Form onSubmit={(event) => {event.preventDefault()}}>
                                 <Form.Group>
                                     <Form.Label>Date</Form.Label>
-                                    <Form.Control type="date" defaultValue={data.date} onBlur={handleDateChange} id="exception-date" />
+                                    <Form.Control type="date" defaultValue={localDate(exception.start).toFormat("yyyy-MM-dd")} onBlur={handleDateChange} id="exception-date" />
                                 </Form.Group>
                                 <Form.Group>
                                     <Form.Label>Description</Form.Label>
-                                    <Form.Control type="text" defaultValue={data.description} onBlur={handleDescriptionChange} id="exception-description" />
+                                    <Form.Control type="text" defaultValue={exception.description} onBlur={handleDescriptionChange} id="exception-description" />
                                 </Form.Group>
                                 <Form.Group>
                                     <FormLabel>

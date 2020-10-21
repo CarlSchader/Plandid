@@ -1,107 +1,65 @@
 const express = require('express');
-const { mongodbConfig } = require('../config');
-const database = require('../database');
+const db = require('../database');
 
 const router = express.Router();
 
-router.post('/addException', async function(req, res) {
-    let exception = req.body.exception;
-    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
-    if (schedule === null) {
-        res.json("Schedule doesn't exist.\n");
-        return;
-    }
-    for (let i = 0; i < schedule.exceptions.length; i++) {
-        if (exception.date === schedule.exceptions[i].date) {
-            res.json("Date already has exception.\n");
-            return;
-        }
-    }
+// userID, scheduleName
+router.post("/getExceptions", async function(req, res) {
+    res.json((await db.readExceptionsRecord(req.body.userID, req.body.scheduleName)).exceptions);
+})
 
-    await database.update(mongodbConfig.schedulesCollectionName, {email: schedule.email, password: schedule.password, number: schedule.number}, {$push: {"exceptions": exception}});
-    res.json(null);
+// userID, scheduleName, utcStart, utcEnd, description
+router.post("/addException", async function(req, res) {
+    await db.addException(req.body.userID, req.body.scheduleName, req.body.utcStart, req.body.utcEnd, req.body.description, []);
+    return res.json(0);
 });
 
-router.post('/removeException', async function(req, res) {
-    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
-    if (schedule === null) {
-        res.json("Schedule doesn't exist.\n");
-        return;
-    }
-    let exceptions = schedule.exceptions;
-    exceptions.splice(req.body.exceptionNumber, 1);
-    await database.update(mongodbConfig.schedulesCollectionName, {email: schedule.email, password: schedule.password, number: schedule.number}, {$set: {"exceptions": exceptions}});
-    res.json(null);
+// userID, scheduleName, index
+router.post("/removeException", async function(req, res) {
+    await db.removeException(req.body.userID, req.body.scheduleName, req.body.index);
+    return res.json(0);
 });
 
-router.post('/changeDate', async function(req, res) {
-    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
-    if (schedule === null) {
-        res.json("Schedule doesn't exist.\n");
-        return;
-    }
-    let exceptions = schedule.exceptions;
-    exceptions[req.body.exceptionNumber].date = req.body.date;
-    await database.update(mongodbConfig.schedulesCollectionName, {email: schedule.email, password: schedule.password, number: schedule.number}, {$set: {"exceptions": exceptions}});
-    res.json(null);
+// userID, scheduleName, index, utcStart
+router.post("/shiftDate", async function(req, res) {
+    await db.exceptionShiftDate(req.body.userID, req.body.scheduleName, req.body.index, req.body.utcStart);
+    return res.json(0);
 });
 
-router.post('/changeDescription', async function(req, res) {
-    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
-    if (schedule === null) {
-        res.json("Schedule doesn't exist.\n");
-        return;
-    }
-    let exceptions = schedule.exceptions;
-    exceptions[req.body.exceptionNumber].description = req.body.description;
-    await database.update(mongodbConfig.schedulesCollectionName, {email: schedule.email, password: schedule.password, number: schedule.number}, {$set: {"exceptions": exceptions}});
-    res.json(null);
+// userID, scheduleName, index, utcStart
+router.post("/changeStartDate", async function(req, res) {
+    await db.exceptionChangeStart(req.body.userID, req.body.scheduleName, req.body.index, req.body.utcStart);
+    return res.json(0);
 });
 
-router.post('/addJob', async function(req, res) {
-    if (isNaN(req.body.job[0]) || req.body.job[0] < 0 || req.body.job[0] >= 86400 || isNaN(req.body.job[1]) || req.body.job[1] < 0 || req.body.job[1] >= 86400) {
-        res.json("Invalid times.\n");
-        return;
-    }
-    if (req.body.job.length < 3 || req.body.job[2] === null) {
-        res.json("Invalid request.\n");
-        return;
-    }
-    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
-    if (schedule === null) {
-        res.json("Invalid user data.\n");
-        return;
-    }
-    let exceptions = schedule.exceptions;
-    let jobs = exceptions[req.body.exceptionNumber].jobs;
-    let upper = jobs.length - 1;
-    let lower = 0;
-    let i = 0;
-    while (lower < upper) {
-        i = Math.floor((upper + lower) / 2);
-        if (req.body.job[0] < jobs[i][0]) upper = i - 1;
-        else if (req.body.job[0] > jobs[i][0]) lower = i + 1;
-        else break;
-    }
-    if (jobs.length === 0) jobs.push(req.body.job);
-    else if (req.body.job[0] < jobs[i][0]) jobs.splice(i, 0, req.body.job);
-    else jobs.splice(i + 1, 0, req.body.job);
-
-    exceptions[req.body.exceptionNumber].jobs = jobs;
-    await database.update(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number}, {$set: {"exceptions": exceptions}});
-    res.json(null);
+// userID, scheduleName, index, utcEnd
+router.post("/changeEndDate", async function(req, res) {
+    await db.exceptionChangeEnd(req.body.userID, req.body.scheduleName, req.body.index, req.body.utcEnd);
+    return res.json(0);
 });
 
-router.post('/removeJob', async function(req, res) {
-    let schedule = await database.read(mongodbConfig.schedulesCollectionName, {email: req.body.currentSchedule.email, password: req.body.currentSchedule.password, number: req.body.currentSchedule.number});
-    if (schedule === null) {
-        res.json("Schedule doesn't exist.\n");
-        return;
+// userID, scheduleName, index, newDescription
+router.post("/changeDescription", async function(req, res) {
+    await db.exceptionChangeDescription(req.body.userID, req.body.scheduleName, req.body.index, req.body.newDescription)
+    return res.json(0);
+});
+
+// userID, scheduleName, index, utcStart, utcEnd, taskName
+router.post("/addJob", async function(req, res) {
+    let tasks = (await db.readTasksRecord(req.body.userID, req.body.scheduleName)).tasks;
+    if (!(req.body.taskName in tasks)) {
+        return res.json(1);
     }
-    let exceptions = schedule.exceptions;
-    exceptions[req.body.exceptionNumber].jobs.splice(req.body.elementNumber, 1);
-    await database.update(mongodbConfig.schedulesCollectionName, {email: schedule.email, password: schedule.password, number: schedule.number}, {$set: {"exceptions": exceptions}});
-    res.json(null);
+    else {
+        await db.exceptionAddJob(req.body.userID, req.body.scheduleName, req.body.index, req.body.utcStart, req.body.utcEnd, req.body.taskName);
+        return res.json(0);
+    }
+});
+
+// userID, scheduleName, index, jobIndex
+router.post("/removeJob", async function(req, res) {
+    await db.exceptionRemoveJob(req.body.userID, req.body.scheduleName, req.body.index, req.body.jobIndex);
+    return res.json(0);
 });
 
 module.exports = router;

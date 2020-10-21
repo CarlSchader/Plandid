@@ -1,62 +1,49 @@
-import React, { useState } from 'react';
-import { Navbar, Nav, Button, Form, FormControl, Dropdown } from 'react-bootstrap';
-import config from '../config';
-import axios from 'axios';
-import { useHistory } from 'react-router-dom';
-import momentTZ from 'moment-timezone';
-import { sendRequest } from '../utilities';
+import React, { useState, useEffect } from 'react';
+import { DateTime } from 'luxon';
+import { Navbar, Nav, Button, Form, FormControl, Badge } from 'react-bootstrap';
+import { useHistory, useLocation } from 'react-router-dom';
+import { executeQuery } from '../utilities';
 
-function AppNav({updateApp=(() => {}), currentSchedule={}}) { // currentSchedule updateApp
+function AppNav() {
+    const [query, setQuery] = useState(null);
+    const [schedule, setSchedule] = useState({});
     const [renaming, setRenaming] = useState(false);
+    
     let history = useHistory();
+    let location = useLocation();
 
-    function renameProject() {
-        axios.post('/appNav/renameSchedule', {currentSchedule: currentSchedule, name: document.getElementById("AppNav-name").value}, {baseURL: config.url, withCredentials: true})
-        .then(function(response) {
-            if (response.data !== null) window.alert(response.data);
-            setRenaming(false);
-            updateApp();
-        });
-    }
+    useEffect(executeQuery(query, {path: "/schedule/getSchedule", data: {}, onResponse: (res) => {
+        setSchedule(res.data);
+    }}), [query]);
 
-    function onResponse(response) {
-        if (response.data !== null) window.alert(response.data);
-        updateApp();
+    function renameSchedule() {
+        let newName = document.getElementById("AppNav-name").value;
+        if (newName !== schedule.scheduleName) {
+            setQuery({
+                path: "/schedule/renameSchedule", 
+                data: {oldScheduleName: schedule.scheduleName, newScheduleName: newName}
+            });
+        }
+        setRenaming(false);
     }
 
     function renamingJSX() {
-        if (renaming) return <FormControl onBlur={renameProject} type="text" defaultValue={currentSchedule.name} className="mr-sm-2" id="AppNav-name" />;
-        else return <Button onClick={() => {setRenaming(true)}} variant="info" size="lg">{currentSchedule.name}</Button>;
+        if (renaming) return <FormControl onBlur={renameSchedule} type="text" defaultValue={schedule.scheduleName} className="mr-sm-2" id="AppNav-name" />;
+        else return <Button onClick={() => {setRenaming(true)}} variant="info" size="lg">{schedule.scheduleName}</Button>;
     }
 
     function timezoneJSX() {
-        let jsx = [];
-        let timezones = momentTZ.tz.names();
-        for (let i = 0; i < timezones.length; i++) {
-            jsx.push(<Dropdown.Item onClick={() => {sendRequest("/appNav/changeTimezone", {currentSchedule: currentSchedule, timezone: timezones[i]}, onResponse)}}>{timezones[i]}</Dropdown.Item>);
-        }
         return (
-            <Dropdown>
-                <Dropdown.Toggle variant="info">
-                    Timezone: {currentSchedule.timezone}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                    {jsx}
-                </Dropdown.Menu>
-            </Dropdown>
+            <h5>
+                <Badge variant="warning">
+                    Timezone: {DateTime.local().zoneName}
+                </Badge>
+            </h5>
         );
     }
 
     function planOnClick() {
-        sendRequest('/appNav/planSchedule', {currentSchedule: currentSchedule}, onResponse);
-    }
-
-    function plannable() {
-        let bool = false;
-        for (let i = 0; i < currentSchedule.weekly.length; i++) {
-            bool = bool || currentSchedule.weekly[i].length > 0;
-        }
-        return bool && currentSchedule.people.length > 0 && currentSchedule.tasks.length > 0;
+        
     }
 
     return (
@@ -67,15 +54,14 @@ function AppNav({updateApp=(() => {}), currentSchedule={}}) { // currentSchedule
             <Nav className="mr-auto">
                 <Nav.Link>+</Nav.Link>
                 {timezoneJSX()}
-                <Button onClick={planOnClick} variant="primary" disabled={!plannable()}>Plan It</Button>
+                <Button onClick={planOnClick} variant="primary">Plan It</Button>
             </Nav>
             <Form onSubmit={(event) => {event.preventDefault()}} inline>
-                {/* <FormControl type="text" placeholder="Search" className="mr-sm-2" /> */}
-                <Button variant="outline-info" active={history.location.pathname === "/Calendar"} onClick={() => {history.push('/Calendar')}}>Calendar</Button>
-                <Button variant="outline-danger" active={history.location.pathname === "/People"} onClick={() => {history.push('/People')}}>People</Button>
-                <Button variant="outline-success" active={history.location.pathname === "/Tasks"} onClick={() => {history.push('/Tasks')}}>Tasks</Button>
-                <Button variant="outline-primary" active={history.location.pathname === "/Week"} onClick={() => {history.push('/Week')}}>Week</Button>
-                <Button variant="outline-warning" active={history.location.pathname === "/Exceptions"} onClick={() => {history.push('/Exceptions')}}>Exceptions</Button>
+                <Button variant="outline-info" active={location.pathname === "/Calendar"} onClick={() => {history.push('/Calendar')}}>Calendar</Button>
+                <Button variant="outline-danger" active={location.pathname === "/People"} onClick={() => {history.push('/People')}}>People</Button>
+                <Button variant="outline-success" active={location.pathname === "/Tasks"} onClick={() => {history.push('/Tasks')}}>Tasks</Button>
+                <Button variant="outline-primary" active={location.pathname === "/Week"} onClick={() => {history.push('/Week')}}>Week</Button>
+                <Button variant="outline-warning" active={location.pathname === "/Exceptions"} onClick={() => {history.push('/Exceptions')}}>Exceptions</Button>
             </Form>
         </Navbar>
     );

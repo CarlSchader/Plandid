@@ -1,35 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Container, Row, Col, Accordion, Popover, InputGroup, FormLabel, FormControl, ButtonGroup, OverlayTrigger } from 'react-bootstrap';
 import Task from './Task';
-import axios from 'axios';
-import config from '../config';
+import { executeQuery, categoryMap } from '../utilities';
 
-function taskSchema(name, category) {
-    return {
-        name: name,
-        category: category
-    };
-}
-
-function Tasks({updateApp=(() => {}), currentSchedule={}}) {
+function Tasks() {
+    const [query, setQuery] = useState(null);
+    const [tasks, setTasks] = useState({});
     const [activeKey, setActiveKey] = useState("-1");
     const [selectedCategory, setSelectedCategory] = useState("");
     const [newName, setNewName] = useState("");
 
+    useEffect(executeQuery(query, {path: "/tasks/getTasks", data: {}, onResponse: res => {setTasks(res.data)}}), [query]);
+
     function tasksJSX() {
         let jsx = [];
-        for (let i = 0; i < currentSchedule.tasks.length; i++) {
-            jsx.push(<Task setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} updateApp={updateApp} currentSchedule={currentSchedule} data={currentSchedule.tasks[i]} number={i} />);
+        let i = 0;
+        for (let name in tasks) {
+            jsx.push(<Task setQuery={setQuery} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} category={tasks[name]} name={name} number={i} />);
+            i++;
         }
         return jsx;
     }
 
     function handleAddTask() {
-        axios.post('/tasks/addTask', {currentSchedule: currentSchedule, task: taskSchema(newName, selectedCategory)}, {baseURL: config.url, withCredentials: true}) // withCredentials allows axios to send cookies
-            .then(function(response) {
-                if (response.data !== null) window.alert(response.data);
-                updateApp();
-            });
+        let newCategory = selectedCategory;
+        if (newCategory === "") {
+            newCategory = null;
+        }
+        else {
+            newCategory = categoryMap[selectedCategory];
+        }
+        setQuery({
+            path: "/tasks/addTask",
+            data: {name: newName, category: newCategory}
+        });
     }
 
     function selectCategoryClick(category) {
