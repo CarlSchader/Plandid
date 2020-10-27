@@ -510,6 +510,7 @@ function planDays(people, week, exceptions, oldPlans, utcStart, utcEnd) {
 
     // A( j(p(logp + logp_e + logp_w) + p + logw + loge_j) )
     while (utc < utcEnd) {
+        console.log(utc, utcEnd, weekIndex, exceptionIndex)
         if (exceptionIndex !== null && exceptionIndex < exceptions.length && (exceptions[exceptionIndex].start <= utc && utc < exceptions[exceptionIndex].end) ) {
             if (!insideException) {
                 insideException = true;
@@ -544,8 +545,14 @@ function planDays(people, week, exceptions, oldPlans, utcStart, utcEnd) {
                 }
             }
             nextJob = convertWeekRange(utc, week[weekIndex]);
-            weekIndex = modulo(weekIndex + 1, week.length);
-            utc = utcFromWeekMillis(utc, week[weekIndex].start);
+            if (weekIndex === modulo(weekIndex + 1, week.length)) {
+                weekIndex = modulo(weekIndex + 1, week.length);
+                utc = utcFromWeekMillis(utc + 1, week[weekIndex].start);    
+            }
+            else {
+                weekIndex = modulo(weekIndex + 1, week.length);
+                utc = utcFromWeekMillis(utc, week[weekIndex].start);    
+            }
         }
         // A(p(logp + logp_e + logp_w) + p)
         plans.push(planOne(nextJob, people, timeQueue, categorySets));

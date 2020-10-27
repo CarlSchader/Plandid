@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../database');
 const { validRange } = require('../utilities');
+const {DateTime } = require("luxon");
 
 const router = express.Router();
 
@@ -11,11 +12,13 @@ router.post("/getExceptions", async function(req, res) {
 
 // userID, scheduleName, utcStart, utcEnd, description
 router.post("/addException", async function(req, res) {
+    console.log(DateTime.fromMillis(req.body.utcStart).toLocaleString(), DateTime.fromMillis(req.body.utcStart).toLocaleString(req.body.utcEnd))
     if (validRange({start: req.body.utcStart, end: req.body.utcEnd})) {
         await db.addException(req.body.userID, req.body.scheduleName, req.body.utcStart, req.body.utcEnd, req.body.description, []);
         return res.json(0);
     }
     else {
+        console.log()
         return res.json(1);
     }
 });

@@ -40,7 +40,6 @@ function Calendar({tier=""}) {
         let dt = localDateFromValues();
         let utcStart = dt.toMillis();
         let utcEnd = DateTime.local().set({year: year, month: month, day: dt.daysInMonth, hour: 23, minute: 59, second: 59, millisecond: 999}).toMillis();
-        console.log(utcEnd)
         setQuery({
             path: "plans/makePlans",
             data: {utcStart: utcStart, utcEnd: utcEnd}
