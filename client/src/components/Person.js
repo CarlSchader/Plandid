@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { DateTime } from 'luxon';
-import { localDate, localDateFromValues, localWeekTime } from '../utilities';
+import { localDate, localDateFromValues, localWeekTime, copyObject } from '../utilities';
 import { Card, Accordion, Button, Form, ButtonGroup, Badge, Tabs, Tab, ListGroup, Popover, OverlayTrigger, Row, Col } from 'react-bootstrap';
 
 const categoryMap = {
@@ -14,6 +14,7 @@ const categoryMap = {
 };
 
 function Person({setQuery=() => {}, setActiveKey=(() => {}), getActiveKey=(() => {}), data={}, number=-1, name=""}) {
+    const datePicker = useRef(null);
     function categoryBadges() {
         let array = [];
         for (let i = 0; i < data.categories.length; i++) {
@@ -83,12 +84,12 @@ function Person({setQuery=() => {}, setActiveKey=(() => {}), getActiveKey=(() =>
     }
 
     function handleAddException() {
-        let startDate = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
-        let startTime = document.getElementById("exception-start-time").value.split(':').map(x => parseInt(x));
-        let endDate = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
-        let endTime = document.getElementById("exception-end-time").value.split(':').map(x => parseInt(x));
-        let isAvailable = document.getElementById("isAvailable-switch").checked;
-        let description = document.getElementById("exception-description").value;
+        let startDate = copyObject(datePicker.current.value).split('-').map(x => parseInt(x));
+        let startTime = copyObject(document.getElementById("exception-start-time").value).split(':').map(x => parseInt(x));
+        let endDate = copyObject(datePicker.current.value).split('-').map(x => parseInt(x));
+        let endTime = copyObject(document.getElementById("exception-end-time").value).split(':').map(x => parseInt(x));
+        let isAvailable = copyObject(document.getElementById("isAvailable-switch").checked);
+        let description = copyObject(document.getElementById("exception-description").value);
         if (startDate.length !== 3 || endDate.length !== 3) {
             window.alert("No date given.");
             return;
@@ -207,7 +208,7 @@ function Person({setQuery=() => {}, setActiveKey=(() => {}), getActiveKey=(() =>
                         </Row>
                         <Row>
                             <Form.Label>Date</Form.Label>
-                            <Form.Control defaultValue={localDateFromValues().toFormat("yyyy-MM-dd")} type="date" placeholder="Date" id="exception-date"/>
+                            <Form.Control defaultValue={localDateFromValues().toFormat("yyyy-MM-dd")} ref={datePicker} type="date" id="person-exception-date"/>
                         </Row>
                         <Row>
                             <Form.Label>Start time</Form.Label>

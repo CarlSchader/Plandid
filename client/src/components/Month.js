@@ -1,83 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Container, Col, Card, Row } from 'react-bootstrap';
+import { localDateFromValues, rangesOverlap, copyObject } from '../utilities';
 import Day from './Day';
 
-const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function Month({year=localDateFromValues().year, month=localDateFromValues().month, plans=[], tier=""}) {
 
-function initializeDayValues(year, month) {
-    let numberOfDays = new Date(year, month + 1, 0).getDate();
-    let numberOfDaysPreviousMonth = 0;
-    let today = new Date();
-    if (month === 0) {
-        numberOfDaysPreviousMonth = new Date(year - 1, 11 + 1, 0).getDate();
-    }
-    else {
-        numberOfDaysPreviousMonth = new Date(year, month - 1 + 1, 0).getDate();
-    }
-    let firstDayOfTheWeek = new Date(year, month, 1).getDay();
-    let array = new Array(42);
-    for (let i = 0; i < firstDayOfTheWeek; i++) {
-        array[i] = {day: numberOfDaysPreviousMonth - firstDayOfTheWeek + 1 + i, color: 'bg-secondary'};
-    }
-    let color = 'bg-white';
-    for (let i = firstDayOfTheWeek; i < 42; i++) {
-        if ((i - firstDayOfTheWeek) === numberOfDays) {
-            color = 'bg-secondary';
+    function getDayPlans(day) {
+        let dayPlans = []
+        let utcStart = localDateFromValues({year: year, month: month, day: day}).toMillis();
+        let utcEnd = localDateFromValues({year: year, month: month, day: day + 1}).toMillis() - 1;
+        for (let i = 0; i < plans.length; i++) {
+            if (rangesOverlap(plans[i], {start: utcStart, end: utcEnd})) {
+                dayPlans.push(copyObject(plans[i]));
+            }
+            else if (plans[i].start >= utcEnd) {
+                break;
+            }
         }
-        array[i] = {day: ((i - firstDayOfTheWeek) % numberOfDays) + 1, color: color};
-        if (today.getDate() === array[i].day && today.getMonth() === month && today.getFullYear() === year) {
-            array[i].color = 'bg-warning';
-        }
+        return dayPlans;
     }
-    return array;
-}
 
-function Month(props) { // year, month
-    const [dayValues, setDayValues] = useState(initializeDayValues(props.year, props.month));
-
-    useEffect(function() {
-        setDayValues(initializeDayValues(props.year, props.month));
-    }, [props.year, props.month]);
-
-    function daysOfJSX(start, count) {
+    function daysJSX() {
         let jsx = [];
-        for (let i = start; i < count + start; i++) {
-            jsx.push(<Col><Day color={dayValues[i].color} value={dayValues[i].day}/></Col>);
+        let weeks = [[]];
+        let weekIndex = 0;
+        let dt = localDateFromValues({year: year, month: month, day: 1});
+        for (let i = 0; i < dt.weekday - 1; i++) {
+            weeks[weekIndex].push(<Col></Col>)
+        }
+        while (dt.month === month) {
+            weeks[weekIndex].push(<Col><Day tier={tier} dateTime={localDateFromValues({year: year, month: month, day: dt.day})} plans={getDayPlans(dt.day)}/></Col>);
+            dt = dt.set({day: dt.day + 1});
+            if (dt.weekday === 1) {
+                weeks.push([]);
+                weekIndex++;
+            }
+        }
+        if (dt.weekday !== 1) {
+            for (let i = 0; i < 7 - dt.weekday + 1; i++) {
+                weeks[weekIndex].push(<Col></Col>)
+            }
+        }
+        
+        for (let i = 0; i < weeks.length; i++) {
+            jsx.push(
+                <Row>
+                    {weeks[i]}
+                </Row>
+            );
         }
         return jsx;
     }
 
     return (
         <Card className="text-center">
-            <Card.Header>{months[props.month]} {props.year}</Card.Header>
-            <Container>
+            <Card.Header>{localDateFromValues({year: year, month: month}).monthLong} {localDateFromValues({year: year, month: month}).year}</Card.Header>
+            <Container fluid>
                 <Row>
-                    <Col>Sunday</Col><Col>Monday</Col><Col>Tuesday</Col><Col>Wednesday</Col><Col>Thursday</Col><Col>Friday</Col><Col>Saturday</Col>
+                    <Col>Monday</Col><Col>Tuesday</Col><Col>Wednesday</Col><Col>Thursday</Col><Col>Friday</Col><Col>Saturday</Col><Col>Sunday</Col>
                 </Row>
-                <Row>
-                    {/* <Col><Day className={dayValues[].color} value={dayValues[0].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[1].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[2].day}/></Col><Col><Day value={dayValues[3].day}/></Col><Col><Day value={dayValues[4].day}/></Col><Col><Day value={dayValues[5].day}/></Col><Col><Day value={dayValues[6].day}/></Col> */}
-                    {daysOfJSX(0, 7)}
-                </Row>
-                <Row>
-                    {/* <Col><Day className={dayValues[].color} value={dayValues[7].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[8].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[9].day}/></Col><Col><Day value={dayValues[10].day}/></Col><Col><Day value={dayValues[11].day}/></Col><Col><Day value={dayValues[12].day}/></Col><Col><Day value={dayValues[13].day}/></Col> */}
-                    {daysOfJSX(7, 7)}
-                </Row>
-                <Row>
-                    {/* <Col><Day className={dayValues[].color} value={dayValues[14].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[15].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[16].day}/></Col><Col><Day value={dayValues[17].day}/></Col><Col><Day value={dayValues[18].day}/></Col><Col><Day value={dayValues[19].day}/></Col><Col><Day value={dayValues[20].day}/></Col> */}
-                    {daysOfJSX(14, 7)}
-                </Row>
-                <Row>
-                    {/* <Col><Day className={dayValues[].color} value={dayValues[21].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[22].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[23].day}/></Col><Col><Day value={dayValues[24].day}/></Col><Col><Day value={dayValues[25].day}/></Col><Col><Day value={dayValues[26].day}/></Col><Col><Day value={dayValues[27].day}/></Col> */}
-                    {daysOfJSX(21, 7)}
-                </Row>
-                <Row>
-                    {/* <Col><Day className={dayValues[].color} value={dayValues[28].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[29].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[30].day}/></Col><Col><Day value={dayValues[31].day}/></Col><Col><Day value={dayValues[32].day}/></Col><Col><Day value={dayValues[33].day}/></Col><Col><Day value={dayValues[34].day}/></Col> */}
-                    {daysOfJSX(28, 7)}
-                </Row>
-                <Row>
-                    {/* <Col><Day className={dayValues[].color} value={dayValues[28].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[29].day}/></Col><Col><Day className={dayValues[].color} value={dayValues[30].day}/></Col><Col><Day value={dayValues[31].day}/></Col><Col><Day value={dayValues[32].day}/></Col><Col><Day value={dayValues[33].day}/></Col><Col><Day value={dayValues[34].day}/></Col> */}
-                    {daysOfJSX(35, 7)}
-                </Row>
+                {daysJSX()}
             </Container>
         </Card>
     );

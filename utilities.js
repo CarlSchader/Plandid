@@ -1,5 +1,55 @@
-const { categorySet } = require('./constants');
+const { categoriesSet, millisecondMap } = require('./constants');
 const { DateTime, Interval } = require('luxon');
+
+function validRange(range, startKey="start", endKey="end") {
+    return typeof(range[startKey]) === "number" && typeof(range[endKey]) === "number";
+}
+
+function weekTime(weekMillis) {
+    return {
+        totalMilliseconds: weekMillis,
+        weekday: function() {
+            if (this.totalMilliseconds === 0) {
+                return 1;
+            }
+            else {
+                return Math.floor(this.totalMilliseconds / millisecondMap.day) + 1;
+            }
+        },
+        hour: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(Math.floor(this.totalMilliseconds / millisecondMap.hour), 24);
+            }
+        },
+        minute: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(Math.floor(this.totalMilliseconds / millisecondMap.minute), 60);
+            }
+        },
+        second: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(Math.floor(this.totalMilliseconds / millisecondMap.second), 60);
+            }
+        },
+        millisecond: function() {
+            if (this.totalMilliseconds === 0) {
+                return 0;
+            }
+            else {
+                return modulo(this.totalMilliseconds, 1000);
+            }
+        }
+    };
+}
 
 function modulo(n, m) {
     return ((n % m) + m) % m;
@@ -7,6 +57,25 @@ function modulo(n, m) {
 
 function weekMillis(utc) {
     return Interval.fromDateTimes(DateTime.fromMillis(utc).set({weekday: 1, hour: 0, minute: 0, second: 0, millisecond: 0}), DateTime.fromMillis(utc)).length("milliseconds");
+}
+
+function utcFromWeekMillis(utcEarlier, millis) {
+    let earlierMillis = weekMillis(utcEarlier);
+    if (millis < earlierMillis) {
+        return utcEarlier + millis + (millisecondMap.week - earlierMillis);
+    }
+    else {
+        return utcEarlier + millis - earlierMillis;
+    }
+}
+
+function weekJobLength(job) {
+    if (job.end < job.start) {
+        return millisecondMap.week - job.start + job.end;
+    }
+    else {
+        return job.end - job.start;
+    }
 }
 
 function copyObject(obj) {
@@ -26,7 +95,7 @@ function categoriesAreOkay(categories) {
         else {
             seenCategories.add(categories[i]);
         }
-        if (!categorySet.has(categories[i])) {
+        if (!categoriesSet.has(categories[i])) {
             return false;
         }
     }
@@ -34,7 +103,7 @@ function categoriesAreOkay(categories) {
 }
 
 function categoryIsOkay(category) {
-    if (categorySet.has(category) || category === null) {
+    if (categoriesSet.has(category) || category === null) {
         return true;
     }
     else {
@@ -65,6 +134,10 @@ function makeID(length) {
     return true;
  }
 
+ function localDate(utc) {
+    return DateTime.fromMillis(utc).setZone(DateTime.local().zoneName);
+}
+
 module.exports = {
     copyObject: copyObject,
     checkName: checkName,
@@ -73,5 +146,9 @@ module.exports = {
     makeID: makeID,
     sortRangedObjectArray: sortRangedObjectArray,
     weekMillis: weekMillis,
-    modulo: modulo
+    modulo: modulo,
+    utcFromWeekMillis: utcFromWeekMillis,
+    weekJobLength: weekJobLength,
+    validRange: validRange,
+    localDate: localDate
 }

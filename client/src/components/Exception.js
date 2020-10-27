@@ -139,7 +139,7 @@ function Exception({setQuery=_ => {}, setActiveKey=_ => {}, getActiveKey=_ => {}
                             <Form onSubmit={(event) => {event.preventDefault()}}>
                                 <Form.Group>
                                     <Form.Label>Date</Form.Label>
-                                    <Form.Control type="date" defaultValue={localDate(exception.start).toFormat("yyyy-MM-dd")} onBlur={handleDateChange} id="exception-date" />
+                                    <Form.Control defaultValue={localDate(exception.start).toFormat("yyyy-MM-dd")} type="date" onBlur={handleDateChange} id="exception-date" />
                                 </Form.Group>
                                 <Form.Group>
                                     <Form.Label>Description</Form.Label>

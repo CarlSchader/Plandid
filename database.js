@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 const { mongodbConfig } = require('./config');
-const { rangeMerge, rangeOverlap } = require('./algorithm');
+const { rangeMerge, overlapSearch } = require('./algorithm');
 const { makeID, sortRangedObjectArray, weekMillis } = require('./utilities');
 
 const names = mongodbConfig.collectionNames;
@@ -25,8 +25,8 @@ function emailValidationSchema(key, email, password) {
 	return {createdAt: new Date(), key: key, email: email, password: password};
 }
 
-function userDataSchema(userID, email, password, subscribed) {
-    return {userID: userID, email: email, password: password, subscribed: subscribed, lastUsedSchedule: ""};
+function userDataSchema(userID, email, password, tier) {
+    return {userID: userID, email: email, password: password, tier: tier, lastUsedSchedule: ""};
 }
 
 function scheduleSchema(userID, scheduleName) {
@@ -171,9 +171,9 @@ async function createEmailValidationRecord(email, password) {
     return key;
 }
 
-async function createUserDataRecord(email, password, subscribed) {
+async function createUserDataRecord(email, password, tier) {
     let userID = await generateUniqueKey(names.userData, "userID");
-    await create(names.userData, userDataSchema(userID, email, password, subscribed));
+    await create(names.userData, userDataSchema(userID, email, password, tier));
     return userID;
 }
 
@@ -201,8 +201,8 @@ async function createPlansRecord(userID, scheduleName) {
 	return await create(names.plans, plansSchema(userID, scheduleName));
 }
 
-async function createAccount(email, password, subscribed) {
-	let userID = await createUserDataRecord(email, password, subscribed);
+async function createAccount(email, password, tier) {
+	let userID = await createUserDataRecord(email, password, tier);
 	let scheduleName = "Schedule 1";
 	await createScheduleRecord(userID, scheduleName);
 	await createPeopleRecord(userID, scheduleName);
@@ -367,8 +367,8 @@ async function changeUserDataPassword(userID, newPassword) {
 	await update(names.userData, {userID: userID}, {$set: {password: newPassword}});
 }
 
-async function changeUserDataSubscription(userID, subscriptionStatus) {
-	await update(names.userData, {userID: userID}, {$set: {subscribed: subscriptionStatus}});
+async function changeUserDataTier(userID, tier) {
+	await update(names.userData, {userID: userID}, {$set: {tier: tier}});
 }
 
 async function changeUserDataLastUsedSchedule(userID, lastUsedSchedule) {
@@ -424,13 +424,13 @@ async function addPersonAvailability(userID, scheduleName, name, utcStart, utcEn
     let normalizedStart = weekMillis(utcStart);
     let normalizedEnd = weekMillis(utcEnd);
     let week = (await readPeopleRecord(userID, scheduleName)).people[name].week;
-    let newWeek = rangeMerge(week, people_availabilitySchema(normalizedStart, normalizedEnd));
+    let newWeek = rangeMerge(people_availabilitySchema(normalizedStart, normalizedEnd), week, "start", "end");
 	await changePersonWeek(userID, scheduleName, name, newWeek);
 }
 
 async function addPersonException(userID, scheduleName, name, utcStart, utcEnd, available, description) {
     let exceptions = (await readPeopleRecord(userID, scheduleName)).people[name].exceptions;
-	let newExceptions = rangeMerge(exceptions, people_exceptionSchema(utcStart, utcEnd, available, description));
+	let newExceptions = rangeMerge(people_exceptionSchema(utcStart, utcEnd, available, description), exceptions, "start", "end");
 	await changePersonExceptions(userID, scheduleName, name, newExceptions);
 }
 
@@ -493,7 +493,7 @@ async function removeWeekJob(userID, scheduleName, index) {
 async function addException(userID, scheduleName, utcStart, utcEnd, description, jobs) {
     let exceptions = (await readExceptionsRecord(userID, scheduleName)).exceptions;
     let newException = exceptions_exceptionSchema(utcStart, utcEnd, description, jobs);
-    if (!rangeOverlap(exceptions, newException)) {
+    if (!overlapSearch(newException, exceptions, "start", "end")) {
         exceptions.push(newException);
         exceptions = sortRangedObjectArray(exceptions);
         await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, {$set: {exceptions: exceptions}});
@@ -623,8 +623,7 @@ async function removePlan(userID, scheduleName, index) {
 }
 
 async function updatePlans(userID, scheduleName, plans) {
-    let newPlans = sortRangedObjectArray(plans);
-	await update(names.plans, {userID: userID, scheduleName: scheduleName}, {$set: {plans: newPlans}});
+	await update(names.plans, {userID: userID, scheduleName: scheduleName}, {$set: {plans: plans}});
 }
 
 async function accountExists(email) {
@@ -638,7 +637,9 @@ async function accountExists(email) {
 }
 
 module.exports = {
-	connect: connect,
+    connect: connect,
+    
+    plans_planSchema: plans_planSchema,
 
 	createEmailValidationRecord: createEmailValidationRecord,
 	createUserDataRecord: createUserDataRecord,
@@ -681,7 +682,7 @@ module.exports = {
     userIDfromSessionID: userIDfromSessionID,
 	changeUserDataEmail: changeUserDataEmail,
 	changeUserDataPassword: changeUserDataPassword,
-    changeUserDataSubscription: changeUserDataSubscription,
+    changeUserDataTier: changeUserDataTier,
     changeUserDataLastUsedSchedule: changeUserDataLastUsedSchedule,
 	changeScheduleName: changeScheduleName,
 	addPerson: addPerson,

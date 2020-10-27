@@ -2,6 +2,10 @@ import axios from 'axios';
 import config from './config';
 import { DateTime } from 'luxon';
 
+function copyObject(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
 function modulo(n, m) {
     return ((n % m) + m) % m;
 }
@@ -173,6 +177,25 @@ const categoryMap = {
 
 const variants = ["primary", "secondary", "success", "warning", "danger", "info", "dark"];
 
+// Assumes range2.start <= range2.end
+function insideRange(range1, range2, startKey="start", endKey="end") {
+    return range1[startKey] >= range2[startKey] && range1[endKey] <= range2[endKey];
+}
+
+function rangesOverlap(range1, range2, startKey="start", endKey="end") {
+    return (range1[startKey] >= range2[startKey] && range1[startKey] <= range2[endKey]) || (range1[endKey] <= range2[endKey] && range1[endKey] >= range2[startKey]);
+}
+
+// Assumes list is sorted
+function overlapSearch(item, list, startKey="start", endKey="end") {
+    for (let i = 0; i < list.length; i++) {
+        if (rangesOverlap(item, list[i], startKey, endKey)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 export {
     executeQuery,
     sendRequest,
@@ -182,5 +205,9 @@ export {
     localDate,
     localDateFromValues,
     localWeekTime,
-    modulo
+    modulo,
+    copyObject,
+    insideRange,
+    rangesOverlap,
+    overlapSearch
 }

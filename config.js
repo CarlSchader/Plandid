@@ -1,3 +1,5 @@
+const {millisecondMap} = require("./constants");
+
 module.exports = {
     appName: 'Plandid',
     port: 80,
@@ -29,5 +31,22 @@ module.exports = {
         service: 'gmail',
         address: 'carlwschader@gmail.com',
         password: 'dncrqgxuljgkhgms'
+    },
+
+    lookBackMillis: 14 * millisecondMap.day,
+
+    tiers: {
+        free: {
+            forwardMillis: 31 * millisecondMap.day,
+            storageMillis: 14 * millisecondMap.day
+        },
+        small: {
+            forwardMillis: 31 * 6 * millisecondMap.day,
+            storageMillis: 365 * 2 * millisecondMap.day
+        },
+        large: {
+            forwardMillis: 365 * 5 * millisecondMap.day,
+            storageMillis: 365 * 20 * millisecondMap.day
+        }
     }
 };

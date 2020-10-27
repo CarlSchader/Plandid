@@ -91,16 +91,12 @@ router.post("/isLoggedIn", async function(req, res) {
     return res.json(false);
 });
 
-router.post("/logout", async function(req, res) {
-    
-});
-
 // query.key
 router.get("/confirmAccount", async function(req, res) {
     let validationData = await db.readEmailValidationRecord(req.query.key);
     if (validationData !== null) {
         await db.removeEmailValidationRecord(req.query.key);
-        let userID = await db.createAccount(validationData.email, validationData.password, false);
+        let userID = await db.createAccount(validationData.email, validationData.password, "free");
         let sessionID = await db.createOnlineRecord(userID);
         req.session.sessionID = sessionID;
         req.session.save();

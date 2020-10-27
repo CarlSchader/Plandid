@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Accordion, Button, Popover, Form, OverlayTrigger } from 'react-bootstrap';
-import { executeQuery, localDateFromValues } from '../utilities';
+import { executeQuery, localDateFromValues, copyObject } from '../utilities';
 import Exception from './Exception';
 
 function Exceptions() {
@@ -8,6 +8,7 @@ function Exceptions() {
     const [exceptions, setExceptions] = useState([]);
     const [tasks, setTasks] = useState({});
     const [activeKey, setActiveKey] = useState("-1");
+    const datePicker = useRef(null);
 
     useEffect(executeQuery(query, [
         {path: "/exceptions/getExceptions", data: {}, onResponse: res => {setExceptions(res.data)}},
@@ -15,10 +16,10 @@ function Exceptions() {
     ]), [query]);
 
     function handleAddException() {
-        let date = document.getElementById("exception-date").value.split('-').map(x => parseInt(x));
-        let description = document.getElementById("exception-description").value;
+        let date = copyObject(datePicker.current.value).split('-').map(x => parseInt(x));
+        let description = copyObject(document.getElementById("exception-description").value);
         let dtStart = localDateFromValues({year: date[0], month: date[1], day: date[2]});
-        let dtEnd = dtStart.set({hour: 23, minute: 59, second: 69, millisecond: 999});
+        let dtEnd = dtStart.set({hour: 23, minute: 59, second: 59, millisecond: 999});
         setQuery({
             path: "/exceptions/addException", 
             data: {utcStart: dtStart.toMillis(), utcEnd: dtEnd.toMillis(), description: description}
@@ -41,7 +42,7 @@ function Exceptions() {
                     <Col>
                         <Row>
                             <Form.Label>Date</Form.Label>
-                            <Form.Control defaultValue={localDateFromValues().toFormat("yyyy-MM-dd")} type="date" placeholder="Date" id="exception-date"/>
+                            <Form.Control defaultValue={localDateFromValues().toFormat("yyyy-MM-dd")} ref={datePicker} type="date" id="exception-date"/>
                         </Row>
                         <Row>
                             <Form.Label>Description (optional)</Form.Label>

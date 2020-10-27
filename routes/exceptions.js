@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../database');
+const { validRange } = require('../utilities');
 
 const router = express.Router();
 
@@ -10,8 +11,13 @@ router.post("/getExceptions", async function(req, res) {
 
 // userID, scheduleName, utcStart, utcEnd, description
 router.post("/addException", async function(req, res) {
-    await db.addException(req.body.userID, req.body.scheduleName, req.body.utcStart, req.body.utcEnd, req.body.description, []);
-    return res.json(0);
+    if (validRange({start: req.body.utcStart, end: req.body.utcEnd})) {
+        await db.addException(req.body.userID, req.body.scheduleName, req.body.utcStart, req.body.utcEnd, req.body.description, []);
+        return res.json(0);
+    }
+    else {
+        return res.json(1);
+    }
 });
 
 // userID, scheduleName, index

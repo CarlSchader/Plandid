@@ -42,10 +42,6 @@ function AppNav() {
         );
     }
 
-    function planOnClick() {
-        
-    }
-
     return (
         <Navbar bg="light" variant="light">
             <Form onSubmit={(event) => {event.preventDefault()}} inline>
@@ -54,7 +50,6 @@ function AppNav() {
             <Nav className="mr-auto">
                 <Nav.Link>+</Nav.Link>
                 {timezoneJSX()}
-                <Button onClick={planOnClick} variant="primary">Plan It</Button>
             </Nav>
             <Form onSubmit={(event) => {event.preventDefault()}} inline>
                 <Button variant="outline-info" active={location.pathname === "/Calendar"} onClick={() => {history.push('/Calendar')}}>Calendar</Button>

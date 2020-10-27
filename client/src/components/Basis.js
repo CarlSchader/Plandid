@@ -13,10 +13,11 @@ import { executeQuery } from '../utilities';
 
 function Basis() {
     const [loggedIn, setLoggedIn] = useState(false);
+    const [tier, setTier] = useState("");
 
     let history = useHistory();
 
-    useEffect(executeQuery(null, {path: "/publicPost/isLoggedIn", data: {}, onResponse: (res) => {
+    useEffect(executeQuery(null, [{path: "/publicPost/isLoggedIn", data: {}, onResponse: (res) => {
         if (res.data) {
             setLoggedIn(true);
         }
@@ -24,7 +25,9 @@ function Basis() {
             setLoggedIn(false);
             history.push('/Landing');
         }
-    }}), [loggedIn]);
+    }},
+    {path: "/userData/getTier", data: {}, onResponse: res => setTier(res.data)}
+    ]), [loggedIn]);
 
     if (loggedIn) {
         return (
@@ -32,7 +35,7 @@ function Basis() {
                 <AppNav />
                 <Switch>
                     <Route exact path="/Calendar">
-                        <Calendar />
+                        <Calendar tier={tier}/>
                     </Route>
                     <Route exact path="/People">
                         <People />
