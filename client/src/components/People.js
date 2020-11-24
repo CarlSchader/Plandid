@@ -20,6 +20,7 @@ function People() {
     const [newName, setNewName] = useState("");
     const [activeKey, setActiveKey] = useState("-1");
 
+    // eslint-disable-next-line
     useEffect(executeQuery(query, {path: "/people/getPeople", data: {}, onResponse: (res) => {
         setPeople(res.data);
     }}), [query]);

@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Row, Col, Jumbotron } from 'react-bootstrap';
 import EmailAndPassword from './EmailAndPassword';
 import { useHistory } from 'react-router-dom';
-import config from '../config';
 import { executeQuery } from '../utilities';
 
 function Login({setLoggedIn=() => {}}) {
     const [query, setQuery] = useState(null);
-
     let history = useHistory();
 
+    // eslint-disable-next-line
     useEffect(executeQuery(query), [query]);
 
     function signUpHandler(email, password) {
@@ -43,7 +42,7 @@ function Login({setLoggedIn=() => {}}) {
                 switch(res.data) {
                     case 0:
                         setLoggedIn(true);
-                        history.push("/Calendar");
+                        history.push("/Calendar")
                         break;
                     case 1:
                         window.alert('Email or password is incorrect.');
@@ -58,11 +57,13 @@ function Login({setLoggedIn=() => {}}) {
 
     return (
         <div>
-            <h1>{config.appName}</h1>
+            <Jumbotron className="bg-light">
+                <h1><img src={"/logo-primary.png"} alt="logo" /></h1>
+            </Jumbotron>
             <Container>
                 <Row>
-                    <Col><EmailAndPassword handleSubmit={signUpHandler} buttonTitle="Sign up"/></Col>
-                    <Col><EmailAndPassword handleSubmit={loginHandler} buttonTitle="Login"/></Col>
+                    <Col><EmailAndPassword bg="light" handleSubmit={signUpHandler} title="New user" buttonTitle="Sign up"/></Col>
+                    <Col><EmailAndPassword bg="light" handleSubmit={loginHandler} title="Existing user" buttonTitle="Login"/></Col>
                 </Row>
             </Container>
         </div>

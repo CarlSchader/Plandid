@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Form, Button } from 'react-bootstrap';
+import { Form, Button, Card } from 'react-bootstrap';
 
 // props: (int)passwordMinLength, (function(email, password))handleSubmit, (string)buttonTitle
-function EmailAndPassword({passwordMinLength= 8, handleSubmit= function(email, password) {console.log(email, password)}, buttonTitle = 'Submit'}) {
+function EmailAndPassword({bg=null, title="", passwordMinLength= 8, handleSubmit= function(email, password) {console.log(email, password)}, buttonTitle = 'Submit'}) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -42,22 +42,27 @@ function EmailAndPassword({passwordMinLength= 8, handleSubmit= function(email, p
     }
 
     return (
-        <form>
-            <Form.Group>
-                <Form.Label>Email address</Form.Label>
-                <Form.Control type="email" placeholder="Enter email" value={email} onChange={handleEmailChange} isInvalid={email.length !== 0 && !emailValid()} />
-                {emailErrorJSX}
-            </Form.Group>
+        <Card bg={bg ? bg : ""}>
+            <Card.Header>{title}</Card.Header>
+            <Card.Body>
+                <Form>
+                    <Form.Group>
+                        <Form.Label>Email address</Form.Label>
+                        <Form.Control type="email" placeholder="Enter email" value={email} onChange={handleEmailChange} isInvalid={email.length !== 0 && !emailValid()} />
+                        {emailErrorJSX}
+                    </Form.Group>
 
-            <Form.Group>
-                <Form.Label>Password</Form.Label>
-                <Form.Control type="password" placeholder="Password" value={password} onChange={handlePasswordChange} isInvalid={password.length !== 0 && !passwordValid()}/>
-                {PasswordErrorJSX}
-            </Form.Group>
-            <Button onClick={function() {handleSubmit(email, password)}} variant="primary" type="button" disabled={!emailValid() || !passwordValid()}>
-                {buttonTitle}
-            </Button>
-        </form>
+                    <Form.Group>
+                        <Form.Label>Password</Form.Label>
+                        <Form.Control type="password" placeholder="Password" value={password} onChange={handlePasswordChange} isInvalid={password.length !== 0 && !passwordValid()}/>
+                        {PasswordErrorJSX}
+                    </Form.Group>
+                    <Button onClick={function() {handleSubmit(email, password)}} variant="primary" type="button" disabled={!emailValid() || !passwordValid()}>
+                        {buttonTitle}
+                    </Button>
+                </Form>
+            </Card.Body>
+        </Card>
     );
 }
 

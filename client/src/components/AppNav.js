@@ -1,65 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { DateTime } from 'luxon';
-import { Navbar, Nav, Button, Form, FormControl, Badge } from 'react-bootstrap';
+import React, { useState, useEffect, useRef } from 'react';
+// import { Navbar, Nav, Button, Form, FormControl, Dropdown } from 'react-bootstrap';
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+// import { faUserCircle } from '@fortawesome/free-solid-svg-icons'
 import { useHistory, useLocation } from 'react-router-dom';
 import { executeQuery } from '../utilities';
+import config from "../config";
 
-function AppNav() {
+// material ui
+import {makeStyles} from '@material-ui/core/styles';
+
+import AppBar from "@material-ui/core/AppBar";
+import Toolbar from "@material-ui/core/Toolbar";
+import Typography from "@material-ui/core/Typography";
+import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
+import IconButton from "@material-ui/core/IconButton";
+import Tabs from "@material-ui/core/Tabs";
+import Tab from "@material-ui/core/Tab";
+import Button from "@material-ui/core/Button";
+
+import AccountCircle from "@material-ui/icons/AccountCircle";
+import EventIcon from '@material-ui/icons/Event';
+import PeopleIcon from '@material-ui/icons/People';
+
+const useStyles = makeStyles((theme) => ({
+    root: {
+        flexGrow: 1,
+    },
+    tabs: {
+        flexGrow: 1,
+        justifyContent: 'center'
+    },
+    title: {
+      flexGrow: 1,
+    },
+    logo: {
+        height: 46
+    },
+}));
+
+export default function AppNav({tier=config.freeTierName, setLoggedIn=() => {}}) {
     const [query, setQuery] = useState(null);
     const [schedule, setSchedule] = useState({});
-    const [renaming, setRenaming] = useState(false);
-    
+    // const [renaming, setRenaming] = useState(false);
+    const [anchorEl, setAnchorEl] = useState(null);
+
     let history = useHistory();
     let location = useLocation();
 
+    // eslint-disable-next-line
     useEffect(executeQuery(query, {path: "/schedule/getSchedule", data: {}, onResponse: (res) => {
         setSchedule(res.data);
     }}), [query]);
 
-    function renameSchedule() {
-        let newName = document.getElementById("AppNav-name").value;
-        if (newName !== schedule.scheduleName) {
-            setQuery({
-                path: "/schedule/renameSchedule", 
-                data: {oldScheduleName: schedule.scheduleName, newScheduleName: newName}
-            });
-        }
-        setRenaming(false);
-    }
+    // function renameSchedule(newName) {
+    //     setQuery({
+    //         path: "/schedule/renameSchedule", 
+    //         data: {oldScheduleName: schedule.scheduleName, newScheduleName: newName}
+    //     });
+    // }
 
-    function renamingJSX() {
-        if (renaming) return <FormControl onBlur={renameSchedule} type="text" defaultValue={schedule.scheduleName} className="mr-sm-2" id="AppNav-name" />;
-        else return <Button onClick={() => {setRenaming(true)}} variant="info" size="lg">{schedule.scheduleName}</Button>;
-    }
-
-    function timezoneJSX() {
-        return (
-            <h5>
-                <Badge variant="warning">
-                    Timezone: {DateTime.local().zoneName}
-                </Badge>
-            </h5>
-        );
+    const classes = useStyles();
+    
+    function handleTabChange(event, newValue) {
+        history.push(newValue);
     }
 
     return (
-        <Navbar bg="light" variant="light">
-            <Form onSubmit={(event) => {event.preventDefault()}} inline>
-                {renamingJSX()}
-            </Form>
-            <Nav className="mr-auto">
-                <Nav.Link>+</Nav.Link>
-                {timezoneJSX()}
-            </Nav>
-            <Form onSubmit={(event) => {event.preventDefault()}} inline>
-                <Button variant="outline-info" active={location.pathname === "/Calendar"} onClick={() => {history.push('/Calendar')}}>Calendar</Button>
-                <Button variant="outline-danger" active={location.pathname === "/People"} onClick={() => {history.push('/People')}}>People</Button>
-                <Button variant="outline-success" active={location.pathname === "/Tasks"} onClick={() => {history.push('/Tasks')}}>Tasks</Button>
-                <Button variant="outline-primary" active={location.pathname === "/Week"} onClick={() => {history.push('/Week')}}>Week</Button>
-                <Button variant="outline-warning" active={location.pathname === "/Exceptions"} onClick={() => {history.push('/Exceptions')}}>Exceptions</Button>
-            </Form>
-        </Navbar>
+        <AppBar position="static" className={classes.root}>
+            <Toolbar>
+                {/* <img src="/logo-secondary.png" alt="logo" className={classes.logo} /> */}
+                <Button variant="contained" color="primary">
+                <Typography variant="h6" className={classes.title}>
+                    {schedule.scheduleName}
+                </Typography>
+                </Button>
+                <Tabs value={location.pathname} onChange={handleTabChange} centered fullwidth className={classes.tabs}>
+                    <Tab value="/Calendar" label="Calendar" icon={<EventIcon />} />
+                    <Tab value="/People" label="People" icon={<PeopleIcon />} />
+                </Tabs>
+                <IconButton
+                onClick={event => setAnchorEl(event.currentTarget)}
+                color="inherit"
+                >
+                    <AccountCircle />
+                </IconButton>
+                <Menu
+                anchorEl={anchorEl}
+                anchorOrigin={{vertical: 'bottom', horizontal: 'center'}}
+                transformOrigin={{vertical: 'top', horizontal: 'center'}}
+                open={anchorEl !== null}
+                onClose={() => setAnchorEl(null)}
+                >
+                    <MenuItem onClick={() => history.push("/Subscription")}>Premium</MenuItem>
+                    {tier !== config.freeTierName ? <MenuItem onClick={() => setQuery({path: "/stripeRoutes/customer-portal", onResponse: res => window.location.href = res.data.url})}>Billing</MenuItem> : <></>}
+                    <MenuItem onClick={() => {setQuery({path: "/online/logout", data: {}, onResponse: function() {setLoggedIn(false); history.push("/Login");}})}}>Logout</MenuItem>
+                </Menu>
+            </Toolbar>
+      </AppBar>
     );
 }
-
-export default AppNav;

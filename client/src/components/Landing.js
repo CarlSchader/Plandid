@@ -2,16 +2,14 @@ import React from 'react';
 import { useHistory } from 'react-router-dom';
 import { Jumbotron, Button } from 'react-bootstrap';
 
-import config from '../config';
-
 function Landing() {
     let history = useHistory();
     return (
-        <Jumbotron>
-            <h1>{config.appName}</h1>
-            <p>
-                This is the landing page. Needs work lol.
-            </p>
+        <Jumbotron className="bg-light text-primary">
+            <h1><img src={"/logo-primary.png"} alt="logo" /></h1>
+            <h3>
+                Make scheduling simple.
+            </h3>
             <p>
                 <Button onClick={function() {history.push('/Login')}} variant="primary">Login</Button>
             </p>

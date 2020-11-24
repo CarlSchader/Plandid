@@ -1,38 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Switch, Route, useHistory } from 'react-router-dom';
+import { Switch, Route } from 'react-router-dom';
 
 import Landing from './Landing';
 import Login from './Login';
+import Policy from "./Policy";
 import Calendar from './Calendar';
 import People from './People';
-import Tasks from './Tasks';
-import Week from './Week';
-import Exceptions from './Exceptions';
 import AppNav from './AppNav';
+import Subscription from "./Subscription";
+import Success from "./Success";
 import { executeQuery } from '../utilities';
+import config from "../config";
 
 function Basis() {
     const [loggedIn, setLoggedIn] = useState(false);
-    const [tier, setTier] = useState("");
+    const [tier, setTier] = useState(config.freeTierName);
 
-    let history = useHistory();
-
-    useEffect(executeQuery(null, [{path: "/publicPost/isLoggedIn", data: {}, onResponse: (res) => {
+    // eslint-disable-next-line
+    useEffect(executeQuery({path: "/publicPost/isLoggedIn", data: {}, onResponse: res => {
         if (res.data) {
             setLoggedIn(true);
+            executeQuery({path: "/userData/getTier", data: {}, onResponse: res => {setTier(res.data)}})();
         }
         else {
             setLoggedIn(false);
-            history.push('/Landing');
         }
-    }},
-    {path: "/userData/getTier", data: {}, onResponse: res => setTier(res.data)}
-    ]), [loggedIn]);
+    }}), []);
+
+    // eslint-disable-next-line
+    useEffect(() => {
+        if (loggedIn) {
+            executeQuery({path: "/userData/getTier", data: {}, onResponse: res => {setTier(res.data)}})();
+        }
+    }, [loggedIn]);
 
     if (loggedIn) {
         return (
             <div>
-                <AppNav />
+                <AppNav tier={tier} setLoggedIn={setLoggedIn}/>
                 <Switch>
                     <Route exact path="/Calendar">
                         <Calendar tier={tier}/>
@@ -40,20 +45,18 @@ function Basis() {
                     <Route exact path="/People">
                         <People />
                     </Route>
-                    <Route exact path="/Tasks">
-                        <Tasks />
+                    <Route exact path="/Subscription">
+                        <Subscription currentTier={tier}/>
                     </Route>
-                    <Route exact path="/Week">
-                        <Week />
-                    </Route>
-                    <Route exact path="/Exceptions">
-                        <Exceptions />
+                    <Route exact path="/Success*">
+                        <Success />
                     </Route>
                     <Route exact path ="/Login">
-                        <Login setLoggedIn={setLoggedIn}/>
+                        <Login loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>
                     </Route>
+                    {Policy()}
                     <Route exact path="/*">
-                        <Landing />
+                        <Calendar />
                     </Route>
                 </Switch>
             </div>
@@ -65,6 +68,7 @@ function Basis() {
                 <Route exact path ="/Login">
                     <Login setLoggedIn={setLoggedIn}/>
                 </Route>
+                {Policy()}
                 <Route exact path="/*">
                     <Landing />
                 </Route>

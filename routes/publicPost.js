@@ -1,6 +1,6 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
-const {emailConfig, appName, url } = require('../config');
+const {emailConfig, appName, url, freeTierName} = require('../config');
 const db = require('../database');
 
 const router = express.Router();
@@ -96,7 +96,7 @@ router.get("/confirmAccount", async function(req, res) {
     let validationData = await db.readEmailValidationRecord(req.query.key);
     if (validationData !== null) {
         await db.removeEmailValidationRecord(req.query.key);
-        let userID = await db.createAccount(validationData.email, validationData.password, "free");
+        let userID = await db.createAccount(validationData.email, validationData.password, freeTierName);
         let sessionID = await db.createOnlineRecord(userID);
         req.session.sessionID = sessionID;
         req.session.save();

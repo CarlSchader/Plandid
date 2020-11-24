@@ -1,9 +1,14 @@
 import axios from 'axios';
+import _ from "lodash"
 import config from './config';
 import { DateTime } from 'luxon';
 
+function invert(obj) {
+    return _.invert(obj);
+}
+
 function copyObject(obj) {
-    return JSON.parse(JSON.stringify(obj));
+    return _.cloneDeep(obj);
 }
 
 function modulo(n, m) {
@@ -92,7 +97,7 @@ function executeQuery(query=null, afterQuery=null) {
         if (Array.isArray(query)) {
             for (let i = 0; i < query.length; i++) {
                 if (i === query.length - 1) {
-                    sendRequest(query[i].path, query[i].data, (res) => {
+                    sendRequest(query[i].path, query[i].data || {}, (res) => {
                         if ("onResponse" in query) {
                             query[i].onResponse(res);
                         }
@@ -101,16 +106,16 @@ function executeQuery(query=null, afterQuery=null) {
                 }
                 else {
                     if ("onResponse" in query[i]) {
-                        sendRequest(query[i].path, query[i].data, query[i].onResponse);
+                        sendRequest(query[i].path, query[i].data || {}, query[i].onResponse);
                     }
                     else {
-                        sendRequest(query[i].path, query[i].data);
+                        sendRequest(query[i].path, query[i].data || {});
                     }
                 }
             }
         }
         else {
-            sendRequest(query.path, query.data, (res) => {
+            sendRequest(query.path, query.data || {}, (res) => {
                 if ("onResponse" in query) {
                     query.onResponse(res);
                 }
@@ -123,19 +128,19 @@ function executeQuery(query=null, afterQuery=null) {
             if (Array.isArray(afterQuery)) {
                 for (let i = 0; i < afterQuery.length; i++) {
                     if ("onResponse" in afterQuery[i]) {
-                        sendRequest(afterQuery[i].path, afterQuery[i].data, afterQuery[i].onResponse);
+                        sendRequest(afterQuery[i].path, afterQuery[i].data || {}, afterQuery[i].onResponse);
                     }
                     else {
-                        sendRequest(afterQuery[i].path, afterQuery[i].data);
+                        sendRequest(afterQuery[i].path, afterQuery[i].data || {});
                     }
                 }
             }
             else {
                 if ("onResponse" in afterQuery) {
-                    sendRequest(afterQuery.path, afterQuery.data, afterQuery.onResponse);
+                    sendRequest(afterQuery.path, afterQuery.data || {}, afterQuery.onResponse);
                 }
                 else {
-                    sendRequest(afterQuery.path, afterQuery.data);
+                    sendRequest(afterQuery.path, afterQuery.data || {});
                 }
             }
         }
@@ -196,6 +201,47 @@ function overlapSearch(item, list, startKey="start", endKey="end") {
     return false;
 }
 
+function pad(n, width, z) {
+    z = z || '0';
+    n = n + '';
+    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+  }
+
+function rruleString(zoneName, startMillis, untilMillis, frequency, interval) {
+    const dtStart = localDate(startMillis).setZone(zoneName);
+    const dtUntil = localDate(untilMillis).setZone(zoneName);
+    return `DTSTART;TZID=${zoneName}:${pad(dtStart.year, 4)}${pad(dtStart.month, 2)}${pad(dtStart.day, 2)}T${pad(dtStart.hour, 2)}${pad(dtStart.minute, 2)}${pad(dtStart.second, 2)}\nRRULE:FREQ=${frequency.toUpperCase()};UNTIL=${pad(dtUntil.year, 4)}${pad(dtUntil.month, 2)}${pad(dtUntil.day, 2)}T${pad(dtUntil.hour, 2)}${pad(dtUntil.minute, 2)}${pad(dtUntil.second, 2)};INTERVAL=${interval}`;
+}
+
+function rruleStringUntilDate(string) {
+    const startIndex = string.indexOf('UNTIL=', 0) + 6;
+    const endIndex = string.indexOf(';', startIndex);
+    let dateString = string.substring(startIndex, endIndex);
+    const year = parseInt(dateString.substring(0, 4));
+    const month = parseInt(dateString.substring(4, 6));
+    const day = parseInt(dateString.substring(6, 8));
+    // skip a char here because of rrule date format adding a T
+    const hour = parseInt(dateString.substring(9, 11));
+    const minute = parseInt(dateString.substring(11, 13));
+    const second = parseInt(dateString.substring(13, 15));
+    return DateTime.local().setZone(rruleStringTimeZone(string)).set({year: year, month: month, day: day, hour: hour, minute: minute, second: second});
+}
+
+function rruleStringTimeZone(string) {
+    const index = string.indexOf("TZID=", 0) + 5;
+    return string.substring(index, string.indexOf(':', index)); 
+}
+
+function rruleStringFrequency(string) {
+    const index = string.indexOf("FREQ=", 0) + 5;
+    return string.substring(index, string.indexOf(';', index));
+}
+
+function rruleStringInterval(string) {
+    const index = string.indexOf("INTERVAL=", 0) + 9;
+    return parseInt(string.substring(index, string.length));
+}
+
 export {
     executeQuery,
     sendRequest,
@@ -209,5 +255,12 @@ export {
     copyObject,
     insideRange,
     rangesOverlap,
-    overlapSearch
+    overlapSearch,
+    pad,
+    rruleString,
+    rruleStringUntilDate,
+    rruleStringTimeZone,
+    rruleStringFrequency,
+    rruleStringInterval,
+    invert
 }

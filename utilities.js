@@ -1,5 +1,10 @@
 const { categoriesSet, millisecondMap } = require('./constants');
 const { DateTime, Interval } = require('luxon');
+const _ = require("lodash");
+
+function invert(obj) {
+    return _.invert(obj);
+}
 
 function validRange(range, startKey="start", endKey="end") {
     return typeof(range[startKey]) === "number" && typeof(range[endKey]) === "number";
@@ -79,7 +84,7 @@ function weekJobLength(job) {
 }
 
 function copyObject(obj) {
-    return JSON.parse(JSON.stringify(obj));
+    return _.cloneDeep(obj);
 }
 
 function sortRangedObjectArray(array, startKey="start") {
@@ -150,5 +155,6 @@ module.exports = {
     utcFromWeekMillis: utcFromWeekMillis,
     weekJobLength: weekJobLength,
     validRange: validRange,
-    localDate: localDate
+    localDate: localDate,
+    invert: invert
 }

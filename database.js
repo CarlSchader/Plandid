@@ -37,16 +37,24 @@ function peopleSchema(userID, scheduleName) {
     return {userID: userID, scheduleName: scheduleName, people: {}};
 }
 
-function tasksSchema(userID, scheduleName) {
-    return {userID: userID, scheduleName: scheduleName, tasks: {}};
+// function tasksSchema(userID, scheduleName) {
+//     return {userID: userID, scheduleName: scheduleName, tasks: {}};
+// }
+
+function categoriesSchema(userID, scheduleName) {
+    return {userID: userID, scheduleName: scheduleName, categories: {}}
 }
 
-function weekSchema(userID, scheduleName) {
-    return {userID: userID, scheduleName: scheduleName, week: []};
-}
+// function weekSchema(userID, scheduleName) {
+//     return {userID: userID, scheduleName: scheduleName, week: []};
+// }
 
-function exceptionsSchema(userID, scheduleName) {
-    return {userID: userID, scheduleName, exceptions: []};
+// function exceptionsSchema(userID, scheduleName) {
+//     return {userID: userID, scheduleName, exceptions: []};
+// }
+
+function eventsSchema(userID, scheduleName) {
+    return {userID: userID, scheduleName: scheduleName, events: []}
 }
 
 function plansSchema(userID, scheduleName) {
@@ -59,36 +67,40 @@ function onlineSchema(sessionID, userID, email) {
 
 
 // Database subfield schemas
-function people_personSchema(categories, week, exceptions) {
-	return {categories: categories, week: week, exceptions: exceptions}
+function people_personSchema(categories) {
+	return {categories: categories, availabilities: []}
 }
 
-function people_availabilitySchema(startTime, endTime) {
-	return {start: startTime, end: endTime};
+function people_availabilitySchema(startTime, endTime, timezone, rrule) {
+	return {start: startTime, end: endTime, timezone: timezone, rrule: rrule};
 }
 
-function people_exceptionSchema(startTime, endTime, available, description) {
-	return {start: startTime, end: endTime, available: available, description: description};
+// function people_exceptionSchema(startTime, endTime, available, description) {
+// 	return {start: startTime, end: endTime, available: available, description: description};
+// }
+
+// function tasks_taskSchema(category) {
+// 	return category;
+// }
+
+// function week_jobSchema(startTime, endTime, taskName, category) {
+// 	return {start: startTime, end: endTime, taskName: taskName, category: category};
+// }
+
+// function exceptions_exceptionSchema(startTime, endTime, description, jobs) {
+// 	return {start: startTime, end: endTime, description: description, jobs: jobs};
+// }
+
+// function exceptions_jobSchema(startTime, endTime, taskName, category) {
+// 	return {start: startTime, end: endTime, taskName: taskName, category: category};
+// }
+
+function events_eventSchema(start, end, name, category, timezone, rrule) {
+    return {start: start, end: end, name: name, category: category, timezone: timezone, rrule: rrule}
 }
 
-function tasks_taskSchema(category) {
-	return category;
-}
-
-function week_jobSchema(startTime, endTime, taskName, category) {
-	return {start: startTime, end: endTime, taskName: taskName, category: category};
-}
-
-function exceptions_exceptionSchema(startTime, endTime, description, jobs) {
-	return {start: startTime, end: endTime, description: description, jobs: jobs};
-}
-
-function exceptions_jobSchema(startTime, endTime, taskName, category) {
-	return {start: startTime, end: endTime, taskName: taskName, category: category};
-}
-
-function plans_planSchema(startTime, endTime, personName, taskName, category) {
-	return {start: startTime, end: endTime, personName: personName, taskName: taskName, category: category};
+function plans_planSchema(startTime, endTime, personName, eventName, category) {
+	return {start: startTime, end: endTime, personName: personName, eventName: eventName, category: category};
 }
 
 
@@ -185,30 +197,40 @@ async function createPeopleRecord(userID, scheduleName) {
 	return await create(names.people, peopleSchema(userID, scheduleName));
 }
 
-async function createTasksRecord(userID, scheduleName) {
-	return await create(names.tasks, tasksSchema(userID, scheduleName));
-}
+// async function createTasksRecord(userID, scheduleName) {
+// 	return await create(names.tasks, tasksSchema(userID, scheduleName));
+// }
 
-async function createWeekRecord(userID, scheduleName) {
-	return await create(names.week, weekSchema(userID, scheduleName));
-}
+// async function createWeekRecord(userID, scheduleName) {
+// 	return await create(names.week, weekSchema(userID, scheduleName));
+// }
 
-async function createExceptionsRecord(userID, scheduleName) {
-	return await create(names.exceptions, exceptionsSchema(userID, scheduleName));
-}
+// async function createExceptionsRecord(userID, scheduleName) {
+// 	return await create(names.exceptions, exceptionsSchema(userID, scheduleName));
+// }
 
 async function createPlansRecord(userID, scheduleName) {
 	return await create(names.plans, plansSchema(userID, scheduleName));
 }
 
+async function createEventsRecord(userID, scheduleName) {
+    return await create(names.events, eventsSchema(userID, scheduleName));
+}
+
+async function createCategoriesRecord(userID, scheduleName) {
+    return await create(names.categories, categoriesSchema(userID, scheduleName));
+}
+
 async function createAccount(email, password, tier) {
 	let userID = await createUserDataRecord(email, password, tier);
-	let scheduleName = "Schedule 1";
+	let scheduleName = "New Schedule";
 	await createScheduleRecord(userID, scheduleName);
 	await createPeopleRecord(userID, scheduleName);
-	await createTasksRecord(userID, scheduleName);
-	await createWeekRecord(userID, scheduleName);
-	await createExceptionsRecord(userID, scheduleName);
+	// await createTasksRecord(userID, scheduleName);
+	// await createWeekRecord(userID, scheduleName);
+    // await createExceptionsRecord(userID, scheduleName);
+    await createEventsRecord(userID, scheduleName);
+    await createCategoriesRecord(userID, scheduleName);
 	await createPlansRecord(userID, scheduleName);
 	return userID;
 }
@@ -248,17 +270,17 @@ async function removePeopleRecord(userID, scheduleName) {
 	await remove(names.people, {userID: userID, scheduleName: scheduleName});
 }
 
-async function removeTasksRecord(userID, scheduleName) {
-	await remove(names.tasks, {userID: userID, scheduleName: scheduleName});
-}
+// async function removeTasksRecord(userID, scheduleName) {
+// 	await remove(names.tasks, {userID: userID, scheduleName: scheduleName});
+// }
 
-async function removeWeekRecord(userID, scheduleName) {
-	await remove(names.week, {userID: userID, scheduleName: scheduleName});
-}
+// async function removeWeekRecord(userID, scheduleName) {
+// 	await remove(names.week, {userID: userID, scheduleName: scheduleName});
+// }
 
-async function removeExceptionsRecord(userID, scheduleName) {
-	await remove(names.exceptions, {userID: userID, scheduleName: scheduleName});
-}
+// async function removeExceptionsRecord(userID, scheduleName) {
+// 	await remove(names.exceptions, {userID: userID, scheduleName: scheduleName});
+// })
 
 async function removePlansRecord(userID, scheduleName) {
 	await remove(names.plans, {userID: userID, scheduleName: scheduleName});
@@ -300,16 +322,24 @@ async function readPeopleRecord(userID, scheduleName) {
 	return await read(names.people, {userID: userID, scheduleName: scheduleName});
 }
 
-async function readTasksRecord(userID, scheduleName) {
-	return await read(names.tasks, {userID: userID, scheduleName: scheduleName});
+// async function readTasksRecord(userID, scheduleName) {
+// 	return await read(names.tasks, {userID: userID, scheduleName: scheduleName});
+// }
+
+// async function readWeekRecord(userID, scheduleName) {
+// 	return await read(names.week, {userID: userID, scheduleName: scheduleName});
+// }
+
+// async function readExceptionsRecord(userID, scheduleName) {
+// 	return await read(names.exceptions, {userID: userID, scheduleName: scheduleName});
+// }
+
+async function readEventsRecord(userID, scheduleName) {
+    return await read(names.events, {userID: userID, scheduleName: scheduleName});
 }
 
-async function readWeekRecord(userID, scheduleName) {
-	return await read(names.week, {userID: userID, scheduleName: scheduleName});
-}
-
-async function readExceptionsRecord(userID, scheduleName) {
-	return await read(names.exceptions, {userID: userID, scheduleName: scheduleName});
+async function readCategoriesRecord(userID, scheduleName) {
+    return await read(names.categories, {userID: userID, scheduleName: scheduleName});
 }
 
 async function readPlansRecord(userID, scheduleName) {
@@ -375,12 +405,18 @@ async function changeUserDataLastUsedSchedule(userID, lastUsedSchedule) {
     await update(names.userData, {userID: userID}, {$set: {lastUsedSchedule: lastUsedSchedule}});
 }
 
+async function changeUserDataStripeCustomerId(userID, stripeCustomerId) {
+    await update(names.userData, {userID: userID}, {$set: {stripeCustomerId: stripeCustomerId}});
+}
+
 async function changeScheduleName(userID, oldScheduleName, newScheduleName) {
 	await update(names.schedule, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
 	await update(names.people, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
-	await update(names.tasks, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
-	await update(names.week, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
-	await update(names.exceptions, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
+	// await update(names.tasks, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
+	// await update(names.week, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
+    // await update(names.exceptions, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
+    await update(names.events, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
+    await update(names.categories, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
 	await update(names.plans, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
 }
 
@@ -636,8 +672,40 @@ async function accountExists(email) {
 	}
 }
 
+// Stripe
+async function readStripeCustomerID(userID) {
+    const currentRecord = await read(names.stripe, {userID: userID});
+    if (currentRecord) {
+        return currentRecord.customerId;
+    }
+    else {
+        return null;
+    }
+}
+
+async function readUserIDfromCustomerId(customerId) {
+    const currentRecord = await read(names.stripe, {customerId: customerId});
+    if (currentRecord) {
+        return currentRecord.userID;
+    }
+    else {
+        return null;
+    }
+}
+
+async function createStripeCustomerRecord(userID, customerId) {
+    const currentId = await readStripeCustomerID(userID);
+    if (!currentId) {
+        await create(names.stripe, {userID: userID, customerId: customerId});
+    }
+}
+
 module.exports = {
     connect: connect,
+
+    // Base Level Functions
+    create: create,
+    read: read,
     
     plans_planSchema: plans_planSchema,
 
@@ -645,9 +713,11 @@ module.exports = {
 	createUserDataRecord: createUserDataRecord,
 	createScheduleRecord: createScheduleRecord,
 	createPeopleRecord: createPeopleRecord,
-	createTasksRecord: createTasksRecord,
-	createWeekRecord: createWeekRecord,
-	createExceptionsRecord: createExceptionsRecord,
+	// createTasksRecord: createTasksRecord,
+	// createWeekRecord: createWeekRecord,
+    // createExceptionsRecord: createExceptionsRecord,
+    createEventsRecord: createEventsRecord,
+    createCategoriesRecord: createCategoriesRecord,
 	createPlansRecord: createPlansRecord,
 	createAccount: createAccount,
 	createOnlineRecord: createOnlineRecord,
@@ -656,9 +726,11 @@ module.exports = {
 	removeEmailValidationRecord: removeEmailValidationRecord,
 	removeScheduleRecord: removeScheduleRecord,
 	removePeopleRecord: removePeopleRecord,
-	removeTasksRecord: removeTasksRecord,
-	removeWeekRecord: removeWeekRecord,
-	removeExceptionsRecord: removeExceptionsRecord,
+    // removeTasksRecord: removeTasksRecord,
+	// removeWeekRecord: removeWeekRecord,
+    // removeExceptionsRecord: removeExceptionsRecord,
+    // removeEventsRecord: removeEventsRecord,
+    // removeCategoriesRecord: removeCategoriesRecord,
 	removePlansRecord:  removePlansRecord,
     removeOnlineRecord: removeOnlineRecord,
     clearDatabase: clearDatabase,
@@ -669,9 +741,11 @@ module.exports = {
 	readEmailValidationRecordFromEmail: readEmailValidationRecordFromEmail,
 	readScheduleRecord: readScheduleRecord,
 	readPeopleRecord: readPeopleRecord,
-	readTasksRecord: readTasksRecord,
-	readWeekRecord: readWeekRecord,
-	readExceptionsRecord: readExceptionsRecord,
+	// readTasksRecord: readTasksRecord,
+	// readWeekRecord: readWeekRecord,
+    // readExceptionsRecord: readExceptionsRecord,
+    readEventsRecord: readEventsRecord,
+    readCategoriesRecord: readCategoriesRecord,
 	readPlansRecord:  readPlansRecord,
     readOnlineRecord: readOnlineRecord,
     getSessionID: getSessionID,
@@ -684,6 +758,7 @@ module.exports = {
 	changeUserDataPassword: changeUserDataPassword,
     changeUserDataTier: changeUserDataTier,
     changeUserDataLastUsedSchedule: changeUserDataLastUsedSchedule,
+    changeUserDataStripeCustomerId: changeUserDataStripeCustomerId,
 	changeScheduleName: changeScheduleName,
 	addPerson: addPerson,
 	removePerson: removePerson,
@@ -712,5 +787,10 @@ module.exports = {
 	addPlan: addPlan,
 	removePlan: removePlan,
 	updatePlans: updatePlans,
-	accountExists: accountExists
+    accountExists: accountExists,
+    
+    // Stripe
+    readStripeCustomerID: readStripeCustomerID,
+    readUserIDfromCustomerId: readUserIDfromCustomerId,
+    createStripeCustomerRecord: createStripeCustomerRecord
 };
