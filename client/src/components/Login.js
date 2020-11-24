@@ -1,12 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Jumbotron } from 'react-bootstrap';
-import EmailAndPassword from './EmailAndPassword';
 import { useHistory } from 'react-router-dom';
 import { executeQuery } from '../utilities';
+import SignIn from "./SignIn";
+import SignUp from "./SignUp";
+
+import AppBar from '@material-ui/core/AppBar';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import { makeStyles } from '@material-ui/core/styles';
+
+const useStyles = makeStyles((theme) => ({
+  rootAppBar: {
+    flexGrow: 1,
+  },
+  toolbar: {
+    minHeight: 128,
+    alignItems: 'flex-start',
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(2),
+  },
+  title: {
+    flexGrow: 1,
+    alignSelf: 'flex-end',
+  },
+  logo: {
+      maxWidth: "33%"
+  }
+}));
+
 
 function Login({setLoggedIn=() => {}}) {
     const [query, setQuery] = useState(null);
     let history = useHistory();
+
+    const classes = useStyles();
 
     // eslint-disable-next-line
     useEffect(executeQuery(query), [query]);
@@ -57,15 +84,23 @@ function Login({setLoggedIn=() => {}}) {
 
     return (
         <div>
-            <Jumbotron className="bg-light">
-                <h1><img src={"/logo-primary.png"} alt="logo" /></h1>
-            </Jumbotron>
-            <Container>
-                <Row>
-                    <Col><EmailAndPassword bg="light" handleSubmit={signUpHandler} title="New user" buttonTitle="Sign up"/></Col>
-                    <Col><EmailAndPassword bg="light" handleSubmit={loginHandler} title="Existing user" buttonTitle="Login"/></Col>
-                </Row>
-            </Container>
+            <div className={classes.rootAppBar}>
+                <AppBar position="static">
+                    <Toolbar className={classes.toolbar}>
+                    <Typography className={classes.title} variant="h5" noWrap>
+                        <img className={classes.logo} src={"/logo-secondary.png"} alt="logo" />
+                    </Typography>
+                    </Toolbar>
+                </AppBar>
+            </div>
+            <Grid container spacing={3}>
+                <Grid item xs={6}>
+                    <SignUp signUpHandler={signUpHandler} />
+                </Grid>
+                <Grid item xs={6}>
+                    <SignIn signInHandler={loginHandler} />
+                </Grid>
+            </Grid>
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 // import { Navbar, Nav, Button, Form, FormControl, Dropdown } from 'react-bootstrap';
 // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 // import { faUserCircle } from '@fortawesome/free-solid-svg-icons'
@@ -17,7 +17,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import IconButton from "@material-ui/core/IconButton";
 import Tabs from "@material-ui/core/Tabs";
 import Tab from "@material-ui/core/Tab";
-import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
 
 import AccountCircle from "@material-ui/icons/AccountCircle";
 import EventIcon from '@material-ui/icons/Event';
@@ -34,6 +34,9 @@ const useStyles = makeStyles((theme) => ({
     title: {
       flexGrow: 1,
     },
+    scheduleName: {
+        color: 'white',
+    },
     logo: {
         height: 46
     },
@@ -42,7 +45,6 @@ const useStyles = makeStyles((theme) => ({
 export default function AppNav({tier=config.freeTierName, setLoggedIn=() => {}}) {
     const [query, setQuery] = useState(null);
     const [schedule, setSchedule] = useState({});
-    // const [renaming, setRenaming] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
 
     let history = useHistory();
@@ -52,13 +54,6 @@ export default function AppNav({tier=config.freeTierName, setLoggedIn=() => {}})
     useEffect(executeQuery(query, {path: "/schedule/getSchedule", data: {}, onResponse: (res) => {
         setSchedule(res.data);
     }}), [query]);
-
-    // function renameSchedule(newName) {
-    //     setQuery({
-    //         path: "/schedule/renameSchedule", 
-    //         data: {oldScheduleName: schedule.scheduleName, newScheduleName: newName}
-    //     });
-    // }
 
     const classes = useStyles();
     
@@ -70,11 +65,15 @@ export default function AppNav({tier=config.freeTierName, setLoggedIn=() => {}})
         <AppBar position="static" className={classes.root}>
             <Toolbar>
                 {/* <img src="/logo-secondary.png" alt="logo" className={classes.logo} /> */}
-                <Button variant="contained" color="primary">
                 <Typography variant="h6" className={classes.title}>
-                    {schedule.scheduleName}
+                    <TextField 
+                    multiline
+                    InputProps={{className: classes.scheduleName}}
+                    onBlur={event => setQuery({path: "/schedule/renameSchedule", data: {oldScheduleName: schedule.scheduleName, newScheduleName: event.target.value}})} 
+                    defaultValue={schedule.scheduleName}
+                    helperText="Schedule Name"
+                    />
                 </Typography>
-                </Button>
                 <Tabs value={location.pathname} onChange={handleTabChange} centered fullwidth className={classes.tabs}>
                     <Tab value="/Calendar" label="Calendar" icon={<EventIcon />} />
                     <Tab value="/People" label="People" icon={<PeopleIcon />} />
