@@ -1,5 +1,11 @@
 import React, {useState, useEffect} from "react";
-import { Form, Button } from 'react-bootstrap';
+// import { Form, Button } from 'react-bootstrap';
+import AddIcon from '@material-ui/icons/Add';
+import InputLabel from "@material-ui/core/InputLabel";
+import FormHelperText from "@material-ui/core/FormHelperText";
+import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
+
 import {executeQuery, copyObject} from "../utilities";
 
 import FlexibleBox from "./FlexibleBox";
@@ -43,21 +49,21 @@ function CategoryPicker({selectedCategory=null, setSelectedCategory=() => {}}) {
                 }
                 setAddingCat(false);
             }
-            return <Form.Control onKeyDown={(e) => {if (e.keyCode === 13) {onBlur()}}} onBlur={onBlur} type="text" id="add-cat" />;
+            return <TextField onKeyDown={(e) => {if (e.keyCode === 13) {onBlur()}}} onBlur={onBlur} id="add-cat" />;
         }
         else {
-            return <Button variant="outline-success" onClick={() => {setAddingCat(true)}}>+</Button>
+            return <Button variant="outlined" color="secondary.light" onClick={() => {setAddingCat(true)}}><AddIcon /></Button>
         }
     }
 
     return (
-        <Form.Group>
-            <Form.Label>Category</Form.Label>
+        <div>
+            <InputLabel>Category</InputLabel>
                 <FlexibleBox>{makeCategoryBadges()}{addCatJSX()}</FlexibleBox>
-            <Form.Text className="text-muted">
+            <FormHelperText>
                 Only people who have the selected category can work this task.
-            </Form.Text>
-        </Form.Group>
+            </FormHelperText>
+        </div>
     )
 }
 

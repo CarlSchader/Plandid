@@ -1,9 +1,27 @@
 import React, { useState } from "react";
-import { Form, InputGroup, Dropdown, DropdownButton, Button } from 'react-bootstrap';
+// import { Form, InputGroup, Dropdown, DropdownButton, Button } from 'react-bootstrap';
+import {makeStyles} from "@material-ui/core/styles";
+import Paper from "@material-ui/core/Paper";
+import Card from "@material-ui/core/Card";
+import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+
 import { RRule, rrulestr } from 'rrule';
 import {DateTime} from "luxon";
 import {copyObject, localDate, rruleString} from "../utilities";
 import CategoryPicker from "./CategoryPicker";
+import RecurrancePicker from "./RecurrancePicker";
+
+const useStyles = makeStyles(theme => ({
+    dialogCard: {
+        padding: "2rem" 
+    },
+    deleteButton: {
+        float: "right"
+    }
+}));
 
 function recurranceInit(rruleString) {
     if (rruleString) {
@@ -30,12 +48,14 @@ function datetimeLocalFormat(dt) {
     return dt.toFormat("yyyy-MM-dd") + 'T' + dt.toFormat("hh:mm:ss.SSS");
 }
 
-function EventPopover({closeOverlay=() => {}, info={}, eventsArray=[], setEvents=() => {}}) {
+function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
     const [newName, setNewName] = useState(info.event.extendedProps.name);
     const [recurrance, setRecurrance] = useState(recurranceInit(info.event.extendedProps.rrule));
     const [recurranceNumb, setRecurranceNumb] = useState(1);
     const [untilDate, setUntilDate] = useState(localDate(info.event.extendedProps.start).plus({months: 1}));
     const [category, setCategory] = useState(info.event.extendedProps.category);
+    const [open, setOpen] = useState(true);
+    const classes = useStyles();
 
     let id = "";
     if (info.event.extendedProps.rrule) {
@@ -55,7 +75,7 @@ function EventPopover({closeOverlay=() => {}, info={}, eventsArray=[], setEvents
         else {
             return (
                 <div>
-                    <InputGroup.Prepend inline>
+                    {/* <InputGroup.Prepend inline>
                         <InputGroup.Text inline>Every</InputGroup.Text>
                     </InputGroup.Prepend>
                     <Form.Control onChange={e => setRecurranceNumb(parseInt(e.target.value))} inline type="number" defaultValue={recurranceNumb.toString()}/>
@@ -65,14 +85,14 @@ function EventPopover({closeOverlay=() => {}, info={}, eventsArray=[], setEvents
                     <InputGroup.Prepend inline>
                         <InputGroup.Text inline>Until</InputGroup.Text>
                     </InputGroup.Prepend>
-                    <Form.Control min={datetimeLocalFormat(localDate(info.event.extendedProps.start))} defaultValue={datetimeLocalFormat(untilDate)} onChange={onChangeUntil} inline type="datetime-local" id="untilDateElement"/>
+                    <Form.Control min={datetimeLocalFormat(localDate(info.event.extendedProps.start))} defaultValue={datetimeLocalFormat(untilDate)} onChange={onChangeUntil} inline type="datetime-local" id="untilDateElement"/> */}
                 </div>
             );
         }
     }
 
     function deleteEvent() {
-        closeOverlay();
+        setOpen(false);
         let idLetter = id[0];
         let idNumb = parseInt(id[id.length - 1]);
         if (idLetter === 'n') {
@@ -83,7 +103,7 @@ function EventPopover({closeOverlay=() => {}, info={}, eventsArray=[], setEvents
     }
 
     function onApply() {
-        closeOverlay();
+        setOpen(false);
         let idLetter = id[0];
         let idNumb = parseInt(id[id.length - 1]);
         let newEvent = copyObject(info.event.extendedProps);
@@ -102,39 +122,59 @@ function EventPopover({closeOverlay=() => {}, info={}, eventsArray=[], setEvents
     }
 
     return (
-        <Form>
-        <Form.Group>
-            <Button onClick={deleteEvent} variant="danger">Delete</Button>
-        </Form.Group>
-        <Form.Group>
-            <Form.Label>Task Name</Form.Label>
-            <Form.Control onChange={e => setNewName(e.target.value)} type="text" placeholder={newName} id={`name-${info.event.id}`}/>
-            <Form.Text className="text-muted">
-            Name of the task for this time slot.
-            </Form.Text>
-        </Form.Group>
+        <Dialog onClose={() => setOpen(false)} open={open}>
+            <DialogTitle>
+                <TextField onChange={e => setNewName(e.target.value)} defaultValue={newName} />
+                <Button className={classes.deleteButton} onClick={deleteEvent} variant="outlined" color="primary">Delete</Button>
+            </DialogTitle>
+            <Card elevation={3} className={classes.dialogCard}>
+                <form noValidate autoComplete="off">
+                    <div>
+                    <CategoryPicker selectedCategory={category} setSelectedCategory={setCategory}/>
+                    </div>
+                    <div>
+                    <RecurrancePicker />
+                    </div>
+                    <div>
+                    <Button onClick={onApply} variant="contained" color="primary">Apply</Button>
+                    </div>
+                </form>
+            </Card>
+        </Dialog>
 
-        <CategoryPicker selectedCategory={category} setSelectedCategory={setCategory}/>
+        // <Form>
+        // <Form.Group>
+        //     <Button onClick={deleteEvent} variant="danger">Delete</Button>
+        // </Form.Group>
+        // <Form.Group>
+        //     <Form.Label>Task Name</Form.Label>
+        //     <Form.Control onChange={e => setNewName(e.target.value)} type="text" placeholder={newName} id={`name-${info.event.id}`}/>
+        //     <Form.Text className="text-muted">
+        //     Name of the task for this time slot.
+        //     </Form.Text>
+        // </Form.Group>
+
+        // <CategoryPicker selectedCategory={category} setSelectedCategory={setCategory}/>
         
-        <Form.Group>
-            <Form.Label>Recurrance</Form.Label>
-            <Form.Label>Task Name</Form.Label>
-            <DropdownButton inline variant="outline-success" title={recurrance}>
-                <Dropdown.Item id="event-popover-once" onSelect={() => setRecurrance(document.getElementById("event-popover-once").innerText)}>Once</Dropdown.Item>
-                <Dropdown.Item id="event-popover-hourly" onSelect={() => setRecurrance(document.getElementById("event-popover-hourly").innerText)}>Hourly</Dropdown.Item>
-                <Dropdown.Item id="event-popover-daily" onSelect={() => setRecurrance(document.getElementById("event-popover-daily").innerText)}>Daily</Dropdown.Item>
-                <Dropdown.Item id="event-popover-weekly" onSelect={() => setRecurrance(document.getElementById("event-popover-weekly").innerText)}>Weekly</Dropdown.Item>
-                <Dropdown.Item id="event-popover-monthly" onSelect={() => setRecurrance(document.getElementById("event-popover-monthly").innerText)}>Monthly</Dropdown.Item>
-                <Dropdown.Item id="event-popover-yearly" onSelect={() => setRecurrance(document.getElementById("event-popover-yearly").innerText)}>Yearly</Dropdown.Item>
-            </DropdownButton>
-            {recurranceJSX()}
-            <Form.Text className="text-muted">
-                This button changes how often this task reoccurs.
-            </Form.Text>
-        </Form.Group>
-        <Button onClick={onApply} >Apply</Button>
-        </Form>
-    )
+        // <Form.Group>
+        //     <Form.Label>Recurrance</Form.Label>
+        //     <Form.Label>Task Name</Form.Label>
+        //     <DropdownButton inline variant="outline-success" title={recurrance}>
+        //         <Dropdown.Item id="event-popover-once" onSelect={() => setRecurrance(document.getElementById("event-popover-once").innerText)}>Once</Dropdown.Item>
+        //         <Dropdown.Item id="event-popover-hourly" onSelect={() => setRecurrance(document.getElementById("event-popover-hourly").innerText)}>Hourly</Dropdown.Item>
+        //         <Dropdown.Item id="event-popover-daily" onSelect={() => setRecurrance(document.getElementById("event-popover-daily").innerText)}>Daily</Dropdown.Item>
+        //         <Dropdown.Item id="event-popover-weekly" onSelect={() => setRecurrance(document.getElementById("event-popover-weekly").innerText)}>Weekly</Dropdown.Item>
+        //         <Dropdown.Item id="event-popover-monthly" onSelect={() => setRecurrance(document.getElementById("event-popover-monthly").innerText)}>Monthly</Dropdown.Item>
+        //         <Dropdown.Item id="event-popover-yearly" onSelect={() => setRecurrance(document.getElementById("event-popover-yearly").innerText)}>Yearly</Dropdown.Item>
+        //     </DropdownButton>
+        //     {recurranceJSX()}
+        //     <Form.Text className="text-muted">
+        //         This button changes how often this task reoccurs.
+        //     </Form.Text>
+        // </Form.Group>
+        // <Button onClick={onApply} >Apply</Button>
+        // </Form>
+    );
 }
 
 export default EventPopover;

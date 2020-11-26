@@ -1,9 +1,9 @@
 import React from "react";
-import {Button} from "react-bootstrap";
+import Button from "@material-ui/core/Button";
 
-function CategoryBadge({onDeselect=() => {}, onSelect=() => {}, variant="warning", selected=false, category=null}) {
+function CategoryBadge({onDeselect=() => {}, onSelect=() => {}, selected=false, category=null}) {
     return (
-        <Button onClick={selected ? onDeselect : onSelect} variant={selected ? variant : "outline-" + variant}>
+        <Button onClick={selected ? onDeselect : onSelect} color="secondary.light" variant={selected ? "contained" : "outlined"}>
             {category}
         </Button>
     );

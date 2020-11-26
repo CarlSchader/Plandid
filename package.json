@@ -30,5 +30,6 @@
     "stripe": "^8.121.0",
     "underscore": "^1.11.0",
     "uuid": "^8.3.1"
-  }
+  },
+  "devDependencies": {}
 }

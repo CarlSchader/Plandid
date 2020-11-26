@@ -1,5 +1,6 @@
 (async function() {
-    const https = require("https");
+    // const https = require("https");
+    const http = require("http");
     const express = require('express');
     const path = require('path');
     const fs = require("fs");
@@ -9,10 +10,10 @@
     const config = require('./config');
     const db = require('./database');
 
-    const options = {
-        key: fs.readFileSync(config.sslKeyPath),
-        cert: fs.readFileSync(config.sslCertificatePath)
-      };
+    // const httpsOptions = {
+    //     key: fs.readFileSync(config.sslKeyPath),
+    //     cert: fs.readFileSync(config.sslCertificatePath)
+    // };
 
     // Connect to database
     await db.connect();
@@ -92,7 +93,8 @@
         });
     });
 
-    https.createServer(options, app).listen(config.port);
+    // https.createServer(httpsOptions, app).listen(config.port);
+    http.createServer(app).listen(config.port);
 
     console.log(`${config.appName} Web Server running on port: ${config.port}`);
 })();

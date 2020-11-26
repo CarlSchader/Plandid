@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Container, Row, Col, Accordion, Popover, InputGroup, FormLabel, FormControl, ButtonGroup, OverlayTrigger } from 'react-bootstrap';
+// import { Button, Container, Row, Col, Accordion, Popover, InputGroup, FormLabel, FormControl, ButtonGroup, OverlayTrigger } from 'react-bootstrap';
 import Person from './Person';
 import { executeQuery } from '../utilities';
 
@@ -56,34 +56,34 @@ function People() {
         setSelectedCategories(newArray);
     }
 
-    const popover = (
-        <Popover id="popover-basic">
-            <Popover.Title as="h3">New Person</Popover.Title>
-            <Popover.Content>
-            <InputGroup className="mb-3">
-                <InputGroup.Prepend>
-                <InputGroup.Text id="inputGroup-sizing-sm">Name</InputGroup.Text>
-                </InputGroup.Prepend>
-                <FormControl onChange={(event) => {setNewName(event.target.value.replace(/^\s+|\s+$/g, ''))}} aria-label="Small" aria-describedby="inputGroup-sizing-sm" />
-            </InputGroup>    
-            <FormLabel>Categories</FormLabel>
-            <ButtonGroup className="mr-2" aria-label="First group">
-                <Button onClick={() => {selectCategoryClick("primary")}} active={selectedCategories.includes(categoryMap["primary"])} variant="outline-primary" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("secondary")}} active={selectedCategories.includes(categoryMap["secondary"])} variant="outline-secondary" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("success")}} active={selectedCategories.includes(categoryMap["success"])} variant="outline-success" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("warning")}} active={selectedCategories.includes(categoryMap["warning"])} variant="outline-warning" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("danger")}} active={selectedCategories.includes(categoryMap["danger"])} variant="outline-danger" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("info")}} active={selectedCategories.includes(categoryMap["info"])} variant="outline-info" type="button"></Button>
-                <Button onClick={() => {selectCategoryClick("dark")}} active={selectedCategories.includes(categoryMap["dark"])} variant="outline-dark" type="button"></Button>
-            </ButtonGroup>
-            <Button variant="primary" type="button" onClick={handleAddPerson}>Add</Button>
-            </Popover.Content>
-        </Popover>
-    );
+    // const popover = (
+    //     <Popover id="popover-basic">
+    //         <Popover.Title as="h3">New Person</Popover.Title>
+    //         <Popover.Content>
+    //         <InputGroup className="mb-3">
+    //             <InputGroup.Prepend>
+    //             <InputGroup.Text id="inputGroup-sizing-sm">Name</InputGroup.Text>
+    //             </InputGroup.Prepend>
+    //             <FormControl onChange={(event) => {setNewName(event.target.value.replace(/^\s+|\s+$/g, ''))}} aria-label="Small" aria-describedby="inputGroup-sizing-sm" />
+    //         </InputGroup>    
+    //         <FormLabel>Categories</FormLabel>
+    //         <ButtonGroup className="mr-2" aria-label="First group">
+    //             <Button onClick={() => {selectCategoryClick("primary")}} active={selectedCategories.includes(categoryMap["primary"])} variant="outline-primary" type="button"></Button>
+    //             <Button onClick={() => {selectCategoryClick("secondary")}} active={selectedCategories.includes(categoryMap["secondary"])} variant="outline-secondary" type="button"></Button>
+    //             <Button onClick={() => {selectCategoryClick("success")}} active={selectedCategories.includes(categoryMap["success"])} variant="outline-success" type="button"></Button>
+    //             <Button onClick={() => {selectCategoryClick("warning")}} active={selectedCategories.includes(categoryMap["warning"])} variant="outline-warning" type="button"></Button>
+    //             <Button onClick={() => {selectCategoryClick("danger")}} active={selectedCategories.includes(categoryMap["danger"])} variant="outline-danger" type="button"></Button>
+    //             <Button onClick={() => {selectCategoryClick("info")}} active={selectedCategories.includes(categoryMap["info"])} variant="outline-info" type="button"></Button>
+    //             <Button onClick={() => {selectCategoryClick("dark")}} active={selectedCategories.includes(categoryMap["dark"])} variant="outline-dark" type="button"></Button>
+    //         </ButtonGroup>
+    //         <Button variant="primary" type="button" onClick={handleAddPerson}>Add</Button>
+    //         </Popover.Content>
+    //     </Popover>
+    // );
 
     return (
         <div>
-            <Container>
+            {/* <Container>
                 <Row>
                     <Col>
                         
@@ -102,7 +102,7 @@ function People() {
             </Container>
             <Accordion activeKey={activeKey}>
                 {peopleJSX()}
-            </Accordion>
+            </Accordion> */}
         </div>
     );
 }

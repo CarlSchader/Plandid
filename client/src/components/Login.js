@@ -7,6 +7,7 @@ import SignUp from "./SignUp";
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
+import Grid from '@material-ui/core/Grid';
 import { makeStyles } from '@material-ui/core/styles';
 
 const useStyles = makeStyles((theme) => ({
@@ -17,14 +18,14 @@ const useStyles = makeStyles((theme) => ({
     minHeight: 128,
     alignItems: 'flex-start',
     paddingTop: theme.spacing(1),
-    paddingBottom: theme.spacing(2),
+    paddingBottom: theme.spacing(1),
   },
   title: {
     flexGrow: 1,
     alignSelf: 'flex-end',
   },
   logo: {
-      maxWidth: "33%"
+      maxWidth: "20%"
   }
 }));
 
@@ -87,9 +88,7 @@ function Login({setLoggedIn=() => {}}) {
             <div className={classes.rootAppBar}>
                 <AppBar position="static">
                     <Toolbar className={classes.toolbar}>
-                    <Typography className={classes.title} variant="h5" noWrap>
                         <img className={classes.logo} src={"/logo-secondary.png"} alt="logo" />
-                    </Typography>
                     </Toolbar>
                 </AppBar>
             </div>

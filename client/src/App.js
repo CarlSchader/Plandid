@@ -3,7 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import config from './config';
 
 import Basis from './components/Basis';
-import './custom.scss';
+// import './custom.scss';
 import './App.css';
 
 // Material-ui

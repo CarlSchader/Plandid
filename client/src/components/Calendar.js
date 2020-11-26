@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from "react-dom";
-import { Popover, OverlayTrigger } from 'react-bootstrap';
+// import { Popover, OverlayTrigger } from 'react-bootstrap';
+import {createMuiTheme, ThemeProvider} from '@material-ui/core/styles';
 import { DateTime, Interval } from "luxon";
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -12,12 +13,24 @@ import luxonPlugin from '@fullcalendar/luxon';
 import {rruleString, rruleStringUntilDate, rruleStringFrequency, rruleStringInterval, copyObject, localDate} from "../utilities";
 import EventPopover from './EventPopover';
 
+import config from "../config";
+
+const popperTheme = createMuiTheme({
+    palette: config.colors,
+});
+
 function Calendar({tier=""}) {
+    const calendarRef = useRef(null);
+    const [state, setState] = useState(1);
+    const [selectedDate, setSelectedDate] = useState(DateTime.local());
+    const {0: plans} = useState([]);
+    const [newEvents, setNewEvents] = useState([]);
+
     const states = {
         0: {
             view: "dayGridMonth",
             isEditable: false,
-            headerToolbar: {start: "title", canter: "", end: "today prev,next"},
+            headerToolbar: {start: "title", canter: "", end: "currentMonth prev,next"},
             selectable: true,
             dateClick: dateClickStandard,
             slotDuration: "01:00:00",
@@ -28,7 +41,7 @@ function Calendar({tier=""}) {
         1: {
             view: "timeGridWeek",
             isEditable: true,
-            headerToolbar: {start: "backButton title", canter: "", end: "today prev,next"},
+            headerToolbar: {start: "monthButton title", canter: "title", end: "currentWeek prev,next"},
             selectable: true,
             dateClick: dateClickStandard,
             slotDuration: "00:30:00",
@@ -39,7 +52,7 @@ function Calendar({tier=""}) {
         2: {
             view: "timeGridDay",
             isEditable: true,
-            headerToolbar: {start: "backButton title", canter: "", end: "today prev,next"},
+            headerToolbar: {start: "weekButton title", canter: "title", end: "currentDay prev,next"},
             selectable: true,
             dateClick: async function(info) {
                 let dt = DateTime.fromISO(info.dateStr);
@@ -60,13 +73,7 @@ function Calendar({tier=""}) {
             contentHeight: 'auto',
             height: 'auto'
         }
-    }
-
-    const calendarRef = useRef(null);
-    const [state, setState] = useState(0);
-    const [selectedDate, setSelectedDate] = useState(DateTime.local());
-    const {0: plans} = useState([]);
-    const [newEvents, setNewEvents] = useState([]);
+    };
 
     // eslint-disable-next-line
     useEffect(function() {
@@ -132,10 +139,6 @@ function Calendar({tier=""}) {
         }
     }
 
-    function backButtonOnClick() {
-        changeState(state - 1, selectedDate);
-    }
-
     function onCalendarEventChange(info) {
         const event = info.event;
         let idLetter = '';
@@ -181,20 +184,30 @@ function Calendar({tier=""}) {
             default:
                 break;
         }
-        let evtId = "event-" + info.event.id;
+        // let evtId = "event-" + info.event.id;
+        // const content = (
+        //   <OverlayTrigger trigger="click" placement="auto" rootClose defaultShow={true} overlay={
+        //     <Popover id={"popover-" + info.event.id}>
+        //         <Popover.Title as="h3">{info.event.title}</Popover.Title>
+        //         <Popover.Content>
+        //             <EventPopover closeOverlay={function() {document.getElementById("popover-" + info.event.id).hidden = true}} info={info} eventsArray={eventsArray} setEvents={setEventsFunction}/>
+        //         </Popover.Content>
+        //     </Popover>
+        //   }>
+        //       <div className="fc-co)ntent" id={evtId}>
+        //         <span className="fc-title">{info.event.title}</span>
+        //       </div>
+        //   </OverlayTrigger>
+        // );
         const content = (
-          <OverlayTrigger trigger="click" placement="auto" rootClose defaultShow={true} overlay={
-            <Popover id={"popover-" + info.event.id}>
-                <Popover.Title as="h3">{info.event.title}</Popover.Title>
-                <Popover.Content>
-                    <EventPopover closeOverlay={function() {document.getElementById("popover-" + info.event.id).hidden = true}} info={info} eventsArray={eventsArray} setEvents={setEventsFunction}/>
-                </Popover.Content>
-            </Popover>
-          }>
-              <div className="fc-co)ntent" id={evtId}>
-                <span className="fc-title">{info.event.title}</span>
-              </div>
-          </OverlayTrigger>
+            <ThemeProvider theme={popperTheme}>
+                <EventPopover
+                // closeOverlay={function() {document.getElementById("popover-" + info.event.id).hidden = true}} 
+                info={info} 
+                eventsArray={eventsArray} 
+                setEvents={setEventsFunction}
+                />
+            </ThemeProvider>
         );
       
         ReactDOM.render(content, info.el);
@@ -206,7 +219,7 @@ function Calendar({tier=""}) {
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin, luxonPlugin]}
             firstDay={1}
             timeZone={DateTime.local().zoneName}
-            initialView="dayGridMonth"
+            initialView={states[state].view}
             events={getCalendarEvents()}
             initialDate={selectedDate.toISO()}
             // expandRows={true}
@@ -225,9 +238,25 @@ function Calendar({tier=""}) {
             eventClick={onEventRender}
 
             customButtons={{
-                backButton: {
-                    text: "Back",
-                    click: backButtonOnClick
+                monthButton: {
+                    text: "Month",
+                    click: () => {changeState(0, selectedDate)}
+                },
+                weekButton: {
+                    text: "Week",
+                    click: () => {changeState(1, selectedDate)}
+                },
+                currentMonth: {
+                    text: "Current Month",
+                    click: () => {setSelectedDate(DateTime.local()); changeState(0, DateTime.local());}
+                },
+                currentWeek: {
+                    text: "Current Week",
+                    click: () => {setSelectedDate(DateTime.local()); changeState(1, DateTime.local());}
+                },
+                currentDay: {
+                    text: "Today",
+                    click: () => {setSelectedDate(DateTime.local()); changeState(2, DateTime.local());}
                 },
                 applyButton: {
                     text: "Apply Changes",

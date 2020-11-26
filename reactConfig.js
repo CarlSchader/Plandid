@@ -1,7 +1,7 @@
 import { millisecondMap } from "./constants";
 
 const config = {
-    url: 'https://plandid.app',
+    url: 'http://carlschader.com',
     appName: 'Plandid',
 
     colors: {
@@ -28,6 +28,11 @@ const config = {
         },
         premium: {
             price: 9.99,
+            forwardMillis: 31 * 6 * millisecondMap.day,
+            storageMillis: 365 * 2 * millisecondMap.day
+        },
+        "enterprise (test)": {
+            price: 24.99,
             forwardMillis: 31 * 6 * millisecondMap.day,
             storageMillis: 365 * 2 * millisecondMap.day
         }
