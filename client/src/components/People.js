@@ -25,36 +25,36 @@ function People() {
         setPeople(res.data);
     }}), [query]);
 
-    function peopleJSX() {
-        let jsx = [];
-        let i = 0;
-        for (let name in people) {
-            jsx.push(<Person name={name} setQuery={setQuery} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} data={people[name]} number={i} />);
-            i++;
-        }
-        return jsx;
-    }
+    // function peopleJSX() {
+    //     let jsx = [];
+    //     let i = 0;
+    //     for (let name in people) {
+    //         jsx.push(<Person name={name} setQuery={setQuery} setActiveKey={setActiveKey} getActiveKey={() => {return activeKey}} data={people[name]} number={i} />);
+    //         i++;
+    //     }
+    //     return jsx;
+    // }
 
-    function handleAddPerson() {
-        setQuery({
-            path: "people/addPerson",
-            data: {name: newName, categories: selectedCategories}
-        });
-        setNewName("");
-        setSelectedCategories([]);
-    }
+    // function handleAddPerson() {
+    //     setQuery({
+    //         path: "people/addPerson",
+    //         data: {name: newName, categories: selectedCategories}
+    //     });
+    //     setNewName("");
+    //     setSelectedCategories([]);
+    // }
 
-    function selectCategoryClick(category) {
-        let newArray = JSON.parse(JSON.stringify(selectedCategories));
-        let index = selectedCategories.findIndex(x => x === categoryMap[category]);
-        if (index === -1) {
-            newArray.push(categoryMap[category]);
-        }
-        else {
-            newArray.splice(index, 1);
-        }
-        setSelectedCategories(newArray);
-    }
+    // function selectCategoryClick(category) {
+    //     let newArray = JSON.parse(JSON.stringify(selectedCategories));
+    //     let index = selectedCategories.findIndex(x => x === categoryMap[category]);
+    //     if (index === -1) {
+    //         newArray.push(categoryMap[category]);
+    //     }
+    //     else {
+    //         newArray.splice(index, 1);
+    //     }
+    //     setSelectedCategories(newArray);
+    // }
 
     // const popover = (
     //     <Popover id="popover-basic">
