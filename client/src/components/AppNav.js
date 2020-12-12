@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-// import { Navbar, Nav, Button, Form, FormControl, Dropdown } from 'react-bootstrap';
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-// import { faUserCircle } from '@fortawesome/free-solid-svg-icons'
 import { useHistory, useLocation } from 'react-router-dom';
-import { executeQuery } from '../utilities';
+import { executeQuery, pathLowestLevel } from '../utilities';
 import config from "../config";
 
 // material ui
@@ -87,7 +84,7 @@ export default function AppNav(props) {
                             />
                         </Typography>
                     </ThemeProvider>
-                    <Tabs value={location.pathname} onChange={handleTabChange} centered fullwidth="true" className={classes.tabs}>
+                    <Tabs value={pathLowestLevel(location.pathname)} onChange={handleTabChange} centered fullwidth="true" className={classes.tabs}>
                         <Tab value="/Calendar" label="Calendar" icon={<EventIcon />} />
                         <Tab value="/People" label="People" icon={<PeopleIcon />} />
                     </Tabs>

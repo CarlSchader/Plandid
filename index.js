@@ -41,6 +41,13 @@
         }
     }));
     
+    ///// FOR DEVELOPMENT REMOVE IN PRODUCTION
+    app.use((req, res, next) => {
+        console.log(req.originalUrl);
+        next();
+    });
+    /////
+
     // Routes
 
     // Public POST Routes

@@ -420,9 +420,9 @@ async function changeScheduleName(userID, oldScheduleName, newScheduleName) {
 	await update(names.plans, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
 }
 
-async function addPerson(userID, scheduleName, name, categories=[], week=[], exceptions=[]) {
+async function addPerson(userID, scheduleName, name, categories={}) {
 	let query = {$set: {}};
-	query["$set"][`people.${name}`] = people_personSchema(categories, week, exceptions);
+    query["$set"][`people.${name}`] = people_personSchema(categories);
 	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
 
@@ -672,6 +672,12 @@ async function accountExists(email) {
 	}
 }
 
+async function addCategory(userID, scheduleName, category) {
+    query = {$set: {}};
+	query["$set"][`categories.${category}`] = "";
+    await update(names.categories, {userID: userID, scheduleName: scheduleName}, query);
+}
+
 // Stripe
 async function readStripeCustomerID(userID) {
     const currentRecord = await read(names.stripe, {userID: userID});
@@ -788,6 +794,7 @@ module.exports = {
 	removePlan: removePlan,
 	updatePlans: updatePlans,
     accountExists: accountExists,
+    addCategory: addCategory,
     
     // Stripe
     readStripeCustomerID: readStripeCustomerID,

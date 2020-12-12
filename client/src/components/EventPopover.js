@@ -99,7 +99,7 @@ function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
             <Card elevation={3} className={classes.dialogCard}>
                 <form noValidate autoComplete="off">
                     <div>
-                    <CategoryPicker selectedCategory={category} setSelectedCategory={setCategory}/>
+                    <CategoryPicker selectedCategories={{[category]: ""}} onSelect={setCategory} onDeselect={() => setCategory(null)}/>
                     </div>
                     <div>
                     <RecurrancePicker 

@@ -11,33 +11,35 @@ import {executeQuery, copyObject} from "../utilities";
 import FlexibleBox from "./FlexibleBox";
 import CategoryBadge from "./CategoryBadge";
 
-function CategoryPicker({selectedCategory=null, setSelectedCategory=() => {}}) {
+function CategoryPicker({selectedCategories={}, onSelect=cat => {}, onDeselect=cat => {}}) {
+    const [query, setQuery] = useState(null);
     const [categories, setCategories] = useState(null);
     const [addingCat, setAddingCat] = useState(false);
 
     // eslint-disable-next-line
-    useEffect(executeQuery(null, {path: "/categories/getCategories", data: {}, onResponse: (res) => {
+    useEffect(executeQuery(query, {path: "/categories/getCategories", data: {}, onResponse: (res) => {
         setCategories(res.data);
-    }}), []);
+    }}), [query]);
 
     function makeCategoryBadges() {
         let jsx = [];
         for (let cat in categories) {
-            function onSelect() {
-                setSelectedCategory(cat);
-            }
-            function onDeselect() {
-                setSelectedCategory(null);
-            }
-            jsx.push(<CategoryBadge selected={cat === selectedCategory} category={cat} onSelect={onSelect} onDeselect={onDeselect} />);
+            jsx.push(<CategoryBadge 
+                selected={cat in selectedCategories} 
+                category={cat} 
+                onSelect={() => onSelect(cat)} 
+                onDeselect={() => onDeselect(cat)} 
+                />
+            );
         }
         return jsx;
     }
 
-    function temporarilyAddCategory(category) {
+    function addCategory(category) {
         let categoriesCopy = copyObject(categories);
-        categoriesCopy[category] = null;
+        categoriesCopy[category.trim().toLowerCase()] = "";
         setCategories(categoriesCopy);
+        setQuery({path: "/categories/addCategory", data: {category: category}});
     }
 
     function addCatJSX() {
@@ -45,11 +47,11 @@ function CategoryPicker({selectedCategory=null, setSelectedCategory=() => {}}) {
             function onBlur() {
                 const name = document.getElementById("add-cat").value.trim();
                 if (name && name.length > 0 && name !== '+') {
-                    temporarilyAddCategory(name);
+                    addCategory(name);
                 }
                 setAddingCat(false);
             }
-            return <TextField onKeyDown={(e) => {if (e.keyCode === 13) {onBlur()}}} onBlur={onBlur} id="add-cat" />;
+            return <TextField onKeyDown={(e) => {if (e.keyCode === 13) {onBlur()}}} onBlur={onBlur} label="New Category" autoFocus id="add-cat" />;
         }
         else {
             return <Button variant="outlined" color="secondary.light" onClick={() => {setAddingCat(true)}}><AddIcon /></Button>
@@ -58,11 +60,9 @@ function CategoryPicker({selectedCategory=null, setSelectedCategory=() => {}}) {
 
     return (
         <div>
-            <InputLabel>Category</InputLabel>
-                <FlexibleBox>{makeCategoryBadges()}{addCatJSX()}</FlexibleBox>
-            <FormHelperText>
-                Only people who have the selected category can work this task.
-            </FormHelperText>
+            <InputLabel>Categories</InputLabel>
+            <InputLabel>Only people who have the selected category can work this task.</InputLabel>
+            <FlexibleBox>{makeCategoryBadges()}{addCatJSX()}</FlexibleBox>
         </div>
     )
 }

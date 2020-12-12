@@ -10,52 +10,6 @@ function validRange(range, startKey="start", endKey="end") {
     return typeof(range[startKey]) === "number" && typeof(range[endKey]) === "number";
 }
 
-function weekTime(weekMillis) {
-    return {
-        totalMilliseconds: weekMillis,
-        weekday: function() {
-            if (this.totalMilliseconds === 0) {
-                return 1;
-            }
-            else {
-                return Math.floor(this.totalMilliseconds / millisecondMap.day) + 1;
-            }
-        },
-        hour: function() {
-            if (this.totalMilliseconds === 0) {
-                return 0;
-            }
-            else {
-                return modulo(Math.floor(this.totalMilliseconds / millisecondMap.hour), 24);
-            }
-        },
-        minute: function() {
-            if (this.totalMilliseconds === 0) {
-                return 0;
-            }
-            else {
-                return modulo(Math.floor(this.totalMilliseconds / millisecondMap.minute), 60);
-            }
-        },
-        second: function() {
-            if (this.totalMilliseconds === 0) {
-                return 0;
-            }
-            else {
-                return modulo(Math.floor(this.totalMilliseconds / millisecondMap.second), 60);
-            }
-        },
-        millisecond: function() {
-            if (this.totalMilliseconds === 0) {
-                return 0;
-            }
-            else {
-                return modulo(this.totalMilliseconds, 1000);
-            }
-        }
-    };
-}
-
 function modulo(n, m) {
     return ((n % m) + m) % m;
 }
@@ -91,31 +45,6 @@ function sortRangedObjectArray(array, startKey="start") {
     return array.sort((x, y) => x[startKey] - y[startKey]);
 }
 
-function categoriesAreOkay(categories) {
-    let seenCategories = new Set();
-    for (let i = 0; i < categories.length; i++) {
-        if (seenCategories.has(categories[i])) {
-            return false;
-        }
-        else {
-            seenCategories.add(categories[i]);
-        }
-        if (!categoriesSet.has(categories[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function categoryIsOkay(category) {
-    if (categoriesSet.has(category) || category === null) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
 function makeID(length) {
     var result           = '';
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -126,7 +55,7 @@ function makeID(length) {
     return result;
  }
 
- function checkName(name, record) {
+function checkName(name, record) {
     if (name.length < 1) {
         return false;
     }
@@ -137,17 +66,15 @@ function makeID(length) {
         return false;
     }
     return true;
- }
+}
 
- function localDate(utc) {
+function localDate(utc) {
     return DateTime.fromMillis(utc).setZone(DateTime.local().zoneName);
 }
 
 module.exports = {
     copyObject: copyObject,
     checkName: checkName,
-    categoriesAreOkay: categoriesAreOkay,
-    categoryIsOkay: categoryIsOkay,
     makeID: makeID,
     sortRangedObjectArray: sortRangedObjectArray,
     weekMillis: weekMillis,

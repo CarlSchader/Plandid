@@ -3,6 +3,15 @@ import _ from "lodash"
 import config from './config';
 import { DateTime } from 'luxon';
 
+function randomColor(seed=null) {
+    return `#${Math.floor(Math.random()*16777215).toString(16)}`;
+}
+
+function pathLowestLevel(path) {
+    let index = path.indexOf('/', 1);
+    return index !== -1 ? path.substring(0, index + 1) : path;
+}
+
 function invert(obj) {
     return _.invert(obj);
 }
@@ -93,6 +102,28 @@ function localWeekTime(weekMillis) {
 }
 
 function executeQuery(query=null, afterQuery=null) {
+    function executeAfterQueries() {
+        if (afterQuery !== null) {
+            if (Array.isArray(afterQuery)) {
+                for (let i = 0; i < afterQuery.length; i++) {
+                    if ("onResponse" in afterQuery[i]) {
+                        sendRequest(afterQuery[i].path, afterQuery[i].data || {}, afterQuery[i].onResponse);
+                    }
+                    else {
+                        sendRequest(afterQuery[i].path, afterQuery[i].data || {});
+                    }
+                }
+            }
+            else {
+                if ("onResponse" in afterQuery) {
+                    sendRequest(afterQuery.path, afterQuery.data || {}, afterQuery.onResponse);
+                }
+                else {
+                    sendRequest(afterQuery.path, afterQuery.data || {});
+                }
+            }
+        }
+    }
     function executeQueries() {
         if (Array.isArray(query)) {
             for (let i = 0; i < query.length; i++) {
@@ -121,28 +152,6 @@ function executeQuery(query=null, afterQuery=null) {
                 }
                 executeAfterQueries();
             });
-        }
-    }
-    function executeAfterQueries() {
-        if (afterQuery !== null) {
-            if (Array.isArray(afterQuery)) {
-                for (let i = 0; i < afterQuery.length; i++) {
-                    if ("onResponse" in afterQuery[i]) {
-                        sendRequest(afterQuery[i].path, afterQuery[i].data || {}, afterQuery[i].onResponse);
-                    }
-                    else {
-                        sendRequest(afterQuery[i].path, afterQuery[i].data || {});
-                    }
-                }
-            }
-            else {
-                if ("onResponse" in afterQuery) {
-                    sendRequest(afterQuery.path, afterQuery.data || {}, afterQuery.onResponse);
-                }
-                else {
-                    sendRequest(afterQuery.path, afterQuery.data || {});
-                }
-            }
         }
     }
     return function() {
@@ -262,5 +271,7 @@ export {
     rruleStringTimeZone,
     rruleStringFrequency,
     rruleStringInterval,
-    invert
+    invert,
+    pathLowestLevel,
+    randomColor,
 }

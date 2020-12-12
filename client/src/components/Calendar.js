@@ -184,25 +184,9 @@ function Calendar({tier=""}) {
             default:
                 break;
         }
-        // let evtId = "event-" + info.event.id;
-        // const content = (
-        //   <OverlayTrigger trigger="click" placement="auto" rootClose defaultShow={true} overlay={
-        //     <Popover id={"popover-" + info.event.id}>
-        //         <Popover.Title as="h3">{info.event.title}</Popover.Title>
-        //         <Popover.Content>
-        //             <EventPopover closeOverlay={function() {document.getElementById("popover-" + info.event.id).hidden = true}} info={info} eventsArray={eventsArray} setEvents={setEventsFunction}/>
-        //         </Popover.Content>
-        //     </Popover>
-        //   }>
-        //       <div className="fc-co)ntent" id={evtId}>
-        //         <span className="fc-title">{info.event.title}</span>
-        //       </div>
-        //   </OverlayTrigger>
-        // );
         const content = (
             <ThemeProvider theme={popperTheme}>
                 <EventPopover
-                // closeOverlay={function() {document.getElementById("popover-" + info.event.id).hidden = true}} 
                 info={info} 
                 eventsArray={eventsArray} 
                 setEvents={setEventsFunction}
