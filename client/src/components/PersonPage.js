@@ -1,5 +1,4 @@
-import React, {useState, useEffect} from "react";
-import {copyObject, executeQuery} from "../utilities";
+import React from "react";
 import CategoryPicker from "./CategoryPicker";
 
 import {makeStyles} from "@material-ui/core/styles";
@@ -21,53 +20,29 @@ const useStyles = makeStyles(theme => ({
 }));
 
 export default function PersonPage(props) {
-    const {name="Unset Name", setName=() => {}} = props;
-    const [categories, setCategories] = useState({});
-    const [availabilities, setAvailibilities] = useState([]);
-    const [query, setQuery] = useState(null);
+    const {
+        name="", 
+        categories={}, 
+        // availabilities=[], 
+        onClose=() => {},
+        onChangeName=newName => {},
+        onCategorySelect=category => {},
+        onCategoryDeselect=category => {}
+    } = props;
     const classes = useStyles();
-
-    //eslint-disable-next-line
-    useEffect(executeQuery(query, {
-        path: "/people/getPerson",
-        data: {name: name},
-        onResponse: res => {setCategories(res.data.categories); setAvailibilities(res.data.availabilities);}
-    }), [query]);
 
     function handleChangeName(event) {
         event.preventDefault()
         const newName = event.target.value.trim();
-        setQuery({
-            path: "/people/changeName",
-            data: {oldName: name, newName: newName},
-            onResponse: () => setName(newName)
-        });
+        onChangeName(newName);
         event.target.blur();
-    }
-
-    function onCatSelect(cat) {
-        let newCats = copyObject(categories);
-        newCats[cat] = "";
-        setQuery({
-            path: "/people/setCategories",
-            data: {name: name, categories: newCats}
-        });
-    }
-
-    function onCatDeselect(cat) {
-        let newCats = copyObject(categories);
-        delete newCats[cat];
-        setQuery({
-            path: "/people/setCategories",
-            data: {name: name, categories: newCats}
-        });
     }
 
     return (
         <Grid className={classes.root} align="center" alignItems="center" justify="center" container spacing={4}>
             <Grid container>
                 <Grid alignItems="flex-start" item xs={3} spacing={4}>
-                    <Button style={{margin: "1.5rem"}} size="large" onClick={() => setName(null)} color="primary" variant="contained" >Back</Button>
+                    <Button style={{margin: "1.5rem"}} size="large" onClick={onClose} color="primary" variant="contained" >Back</Button>
                 </Grid>
             </Grid>
             <Grid item xs={12}>
@@ -82,7 +57,7 @@ export default function PersonPage(props) {
                 />
             </Grid>
             <Grid item xs={12}>
-                <CategoryPicker selectedCategories={categories} onSelect={onCatSelect} onDeselect={onCatDeselect} />
+                <CategoryPicker selectedCategories={categories} onSelect={onCategorySelect} onDeselect={onCategoryDeselect} />
             </Grid>
         </Grid>
     );

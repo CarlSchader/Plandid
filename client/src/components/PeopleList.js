@@ -1,28 +1,20 @@
-import React, {useState, useEffect} from "react";
+import React from "react";
 import AvatarList from "./AvatartList";
-import {executeQuery} from "../utilities";
 import FlexibleBox from "./FlexibleBox";
 import CategoryBadge from "./CategoryBadge";
 
 import Grid from "@material-ui/core/Grid";
 
-// onDelete takes a name parameter
+// onDelete takes a name, person object parameter
 // onClick takes name, person object parameters
 // filter takes name, person object parameters and returns true if that person is included in the list, false if not.
 export default function PeopleList(props) {
-    const {onClick=(name, person) => {}, onDelete=null, onAdd=null, filter=(name, person) => true, rerenderBool=false} = props;
-    const [people, setPeople] = useState({});
-    
-    // eslint-disable-next-line
-    useEffect(executeQuery({path: "/people/getPeople", data: {}, onResponse: function(res) {
-        let filteredPeople = {};
-        for (const name in res.data) {
-            if (filter(name, res.data[name])) {
-                filteredPeople[name] = res.data[name];
-            }
-        }
-        setPeople(filteredPeople);
-    }}), [rerenderBool]);
+    const {
+        people={},
+        onClick=(name, person) => {}, 
+        onDelete=(name, person) => {}, 
+        onAdd=() => {}
+    } = props;
 
     function generateInputObjects() {
         let objects = [];
@@ -43,7 +35,7 @@ export default function PeopleList(props) {
                     </Grid>, 
                 avatarChildren: name[0],
                 onClick: () => onClick(name, people[name]),
-                onDelete: onDelete ? () => onDelete(name) : null
+                onDelete: onDelete ? () => onDelete(name, people[name]) : null
             });
         }
         return objects;

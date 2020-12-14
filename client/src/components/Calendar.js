@@ -10,7 +10,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
 import luxonPlugin from '@fullcalendar/luxon';
 
-import {rruleString, rruleStringUntilDate, rruleStringFrequency, rruleStringInterval, copyObject, localDate} from "../utilities";
+import {rruleString, rruleObject, copyObject, localDate} from "../utilities";
 import EventPopover from './EventPopover';
 
 import config from "../config";
@@ -145,11 +145,15 @@ function Calendar({tier=""}) {
         let id = -1;
         const difference = DateTime.fromISO(event.startStr).toMillis() - localDate(event.extendedProps.start).toMillis();
         let rrule = event.extendedProps.rrule;
+        let rruleObj = rruleObject(rrule);
         if (event.groupId) {
             idLetter = event.groupId[0];
             id = parseInt(event.groupId[1]);
-            const rruleUntilDate = rruleStringUntilDate(rrule);
-            rrule = rruleString(DateTime.local().zoneName, localDate(event.extendedProps.start).toMillis() + difference, rruleUntilDate.toMillis() + difference, rruleStringFrequency(rrule), rruleStringInterval(rrule));
+            rruleObj.start = rruleObj.start.plus(difference);
+            if (rruleObj.until) rruleObj.until = rruleObj.until.plus(difference);
+            // console.log(1, rrule, rruleObj)
+            rrule = rruleString(rruleObj);
+            // console.log(2, rrule)
         }
         else {
             idLetter = event.id[0];

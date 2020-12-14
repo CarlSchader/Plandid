@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-// import { Form, InputGroup, Dropdown, DropdownButton, Button } from 'react-bootstrap';
+import {copyObject, localDate} from "../utilities";
+import CategoryPicker from "./CategoryPicker";
+import RRuleInterface from "./RRuleInterface";
+
 import {makeStyles} from "@material-ui/core/styles";
 import Card from "@material-ui/core/Card";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
 import Dialog from "@material-ui/core/Dialog";
 import DialogTitle from "@material-ui/core/DialogTitle";
-
-import { RRule, rrulestr } from 'rrule';
-import {DateTime} from "luxon";
-import {copyObject, localDate, rruleString} from "../utilities";
-import CategoryPicker from "./CategoryPicker";
-import RecurrancePicker from "./RecurrancePicker";
+import FormControl from "@material-ui/core/FormControl";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Radio from "@material-ui/core/Radio";
+import RadioGroup from "@material-ui/core/RadioGroup";
 
 const useStyles = makeStyles(theme => ({
     dialogCard: {
@@ -22,32 +23,10 @@ const useStyles = makeStyles(theme => ({
     }
 }));
 
-function recurranceInit(rruleString) {
-    if (rruleString) {
-        let rule = rrulestr(rruleString);
-        switch (rule.options.freq) {
-            case RRule.HOURLY:
-                return "Hourly";
-            case RRule.DAILY:
-                return "Daily";
-            case RRule.WEEKLY:
-                return "Weekly";
-            case RRule.MONTHLY:
-                return "Monthly";
-            case RRule.YEARLY:
-                return "Yearly";
-            default:
-                return "Once";
-        }
-    }
-    return "Once";
-}
-
 function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
     const [newName, setNewName] = useState(info.event.extendedProps.name);
-    const [recurrance, setRecurrance] = useState(recurranceInit(info.event.extendedProps.rrule));
-    const [recurranceNumb, setRecurranceNumb] = useState(1);
-    const [untilDate, setUntilDate] = useState(localDate(info.event.extendedProps.start).plus({months: 1}));
+    const [rrule, setRRule] = useState(info.event.extendedProps.rrule);
+    const [doesRepeat, setDoesRepeat] = useState(info.event.extendedProps.rrule !== null ? true : false);
     const [category, setCategory] = useState(info.event.extendedProps.category);
     const [open, setOpen] = useState(true);
     const classes = useStyles();
@@ -82,12 +61,36 @@ function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
         else {
             newEvent.eventName = newName;
         }
-        if (recurrance && recurrance !== "Once") {
-            newEvent.rrule = rruleString(DateTime.local().zoneName, info.event.extendedProps.start, untilDate.toMillis(), recurrance, recurranceNumb);
-        }
+        newEvent.rrule = rrule;
         newEvent.category = category;
         eventsArray[idNumb] = newEvent;
         setEvents(eventsArray);
+    }
+
+    function repeatingJsx() {
+        let jsx = <div></div>;
+        if (doesRepeat) jsx = <RRuleInterface dtStart={localDate(info.event.extendedProps.start)} rrule={rrule} setRRule={setRRule}/>;
+        return (
+            <div>
+            <FormControl component="fieldset">
+                <RadioGroup row name="position" value={doesRepeat ? "right" : "left"} defaultValue="left">
+                    <FormControlLabel
+                    value="left"
+                    control={<Radio onChange={e => {if (e.target.checked) setDoesRepeat(false)}} color="primary" />}
+                    label="Doesn't Repeat"
+                    labelPlacement="top"
+                    />
+                    <FormControlLabel
+                    value="right"
+                    control={<Radio onChange={e => {if (e.target.checked) setDoesRepeat(true)}} color="primary" />}
+                    label="Repeats"
+                    labelPlacement="top"
+                    />
+                </RadioGroup>
+            </FormControl>
+            {jsx}
+            </div>
+        );
     }
 
     return (
@@ -99,21 +102,13 @@ function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
             <Card elevation={3} className={classes.dialogCard}>
                 <form noValidate autoComplete="off">
                     <div>
-                    <CategoryPicker selectedCategories={{[category]: ""}} onSelect={setCategory} onDeselect={() => setCategory(null)}/>
+                        <CategoryPicker selectedCategories={{[category]: ""}} onSelect={setCategory} onDeselect={() => setCategory(null)}/>
                     </div>
                     <div>
-                    <RecurrancePicker 
-                    info={info}
-                    untilDate={untilDate}
-                    recurrance={recurrance} 
-                    recurranceNumb={recurranceNumb} 
-                    setRecurrance={setRecurrance} 
-                    setRecurranceNumb={setRecurranceNumb} 
-                    setUntilDate={setUntilDate} 
-                    />
+                        {repeatingJsx()}
                     </div>
                     <div>
-                    <Button onClick={onApply} variant="contained" color="primary">Apply</Button>
+                        <Button onClick={onApply} variant="contained" color="primary">Apply</Button>
                     </div>
                 </form>
             </Card>

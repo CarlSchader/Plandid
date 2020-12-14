@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { executeQuery } from '../utilities';
+import { executeQuery, copyObject } from '../utilities';
 import PeopleList from "./PeopleList";
 import AddPersonDialog from './AddPersonDialog';
 import PersonPage from "./PersonPage";
@@ -7,34 +7,59 @@ import PersonPage from "./PersonPage";
 function People() {
     const [query, setQuery] = useState(null);
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [rerenderBool, setRerenderBool] = useState(false);
-    const [currentPersonName, setCurrentPersonName] = useState(null);
+    const [people, setPeople] = useState({});
+    const [currentName, setCurrentName] = useState(null);
+    const [personOpen, setPersonOpen] = useState(false);
 
     // eslint-disable-next-line
-    useEffect(executeQuery(query), [query]);
+    useEffect(executeQuery(query, {
+        path: "/people/getPeople",
+        data: {},
+        onResponse: res => setPeople(res.data)
+    }), [query]);
 
-    function rerenderList() {
-        setRerenderBool(!rerenderBool);
+    function onCategorySelect(category) {
+        let newCats = copyObject(people[currentName].categories);
+        newCats[category] = "";
+        setQuery({path: "/people/setCategories", data: {name: currentName, categories: newCats}});
     }
 
-    if (currentPersonName) {
+    function onCategoryDeselect(category) {
+        let newCats = copyObject(people[currentName].categories);
+        delete newCats[category];
+        setQuery({path: "/people/setCategories", data: {name: currentName, categories: newCats}});
+    }
+
+    if (personOpen) {
         return <PersonPage 
-        name={currentPersonName}
-        setName={setCurrentPersonName}
+        name={currentName}
+        categories={people[currentName] ? people[currentName].categories : {}}
+        availabilities={people[currentName] ? people[currentName].availabilities : []}
+        setQuery={setQuery}
+        onClose={() => setPersonOpen(false)}
+        onChangeName={newName => {
+            setQuery({path: "/people/changeName", data: {oldName: currentName, newName: newName}, onResponse: res =>
+                {if (res.data === 0) setCurrentName(newName);}
+            }); 
+        }}
+        onCategorySelect={onCategorySelect}
+        onCategoryDeselect={onCategoryDeselect}
         />;
     }
     else {
         return (
             <div>
                 <PeopleList 
-                onDelete={name => setQuery({path: "/people/removePerson", data: {name: name}, onResponse: () => rerenderList()})} 
+                people={people}
+                onDelete={name => setQuery({path: "/people/removePerson", data: {name: name}})} 
                 onAdd={() => setDialogOpen(true)}
-                onClick={(name, person) => {
-                    setCurrentPersonName(name);
-                }}
-                rerenderBool={rerenderBool}
+                onClick={name => {setCurrentName(name); setPersonOpen(true);}}
                 />
-                <AddPersonDialog open={dialogOpen} setOpen={setDialogOpen} onAddCallback={rerenderList} />
+                <AddPersonDialog 
+                open={dialogOpen} 
+                setOpen={setDialogOpen} 
+                onAdd={name => setQuery({path: "/people/addPerson", data: {name: name}})} 
+                />
             </div>
         );
     }

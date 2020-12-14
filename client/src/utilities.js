@@ -214,41 +214,92 @@ function pad(n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
-  }
-
-function rruleString(zoneName, startMillis, untilMillis, frequency, interval) {
-    const dtStart = localDate(startMillis).setZone(zoneName);
-    const dtUntil = localDate(untilMillis).setZone(zoneName);
-    return `DTSTART;TZID=${zoneName}:${pad(dtStart.year, 4)}${pad(dtStart.month, 2)}${pad(dtStart.day, 2)}T${pad(dtStart.hour, 2)}${pad(dtStart.minute, 2)}${pad(dtStart.second, 2)}\nRRULE:FREQ=${frequency.toUpperCase()};UNTIL=${pad(dtUntil.year, 4)}${pad(dtUntil.month, 2)}${pad(dtUntil.day, 2)}T${pad(dtUntil.hour, 2)}${pad(dtUntil.minute, 2)}${pad(dtUntil.second, 2)};INTERVAL=${interval}`;
 }
 
-function rruleStringUntilDate(string) {
-    const startIndex = string.indexOf('UNTIL=', 0) + 6;
-    const endIndex = string.indexOf(';', startIndex);
-    let dateString = string.substring(startIndex, endIndex);
-    const year = parseInt(dateString.substring(0, 4));
-    const month = parseInt(dateString.substring(4, 6));
-    const day = parseInt(dateString.substring(6, 8));
-    // skip a char here because of rrule date format adding a T
-    const hour = parseInt(dateString.substring(9, 11));
-    const minute = parseInt(dateString.substring(11, 13));
-    const second = parseInt(dateString.substring(13, 15));
-    return DateTime.local().setZone(rruleStringTimeZone(string)).set({year: year, month: month, day: day, hour: hour, minute: minute, second: second});
+function rruleDateToDateTime(dateString, timezone=null) {
+    let dt = DateTime.local();
+    if (timezone) dt.setZone(timezone);
+    dt = dt.set({
+        year: parseInt(dateString.slice(0, 4)), 
+        month: parseInt(dateString.slice(4, 6)), 
+        day: parseInt(dateString.slice(6, 8)), 
+        hour: parseInt(dateString.slice(9, 11)), 
+        minute: parseInt(dateString.slice(11, 13)), 
+        second: parseInt(dateString.slice(13, 15))
+    });
+    return dt;
 }
 
-function rruleStringTimeZone(string) {
-    const index = string.indexOf("TZID=", 0) + 5;
-    return string.substring(index, string.indexOf(':', index)); 
+/* Function behavior is undefined if start and until timezones are not the same.
+Whatever parameters you put in will go into the string even if it's no longer a valid rrule.
+Notes: bySetPos can be -1, in this case it matches the last of that day for that month. */
+function rruleString(rruleObject) {
+    const {
+        start=DateTime.local(), 
+        frequency="DAILY", 
+        interval=1, 
+        count=null, 
+        until=null, 
+        byDay=null, 
+        byMonthDay=null, 
+        bySetPos=null, 
+        byMonth=null
+    } = rruleObject;
+
+    let rrule = `DTSTART;TZID=${start.zoneName}:${pad(start.year, 4)}${pad(start.month, 2)}${pad(start.day, 2)}T${pad(start.hour, 2)}${pad(start.minute, 2)}${pad(start.second, 2)}\nRRULE:FREQ=${frequency.toUpperCase()};INTERVAL=${interval}`;
+    if (count) rrule += `;COUNT=${count}`;
+    if (until) rrule += `;UNTIL=${pad(until.year, 4)}${pad(until.month, 2)}${pad(until.day, 2)}T${pad(until.hour, 2)}${pad(until.minute, 2)}${pad(until.second, 2)}`;
+    if (byDay) rrule += `;BYDAY=${Array.isArray(byDay) ? byDay.join().toUpperCase() : byDay}`;
+    if (byMonthDay) rrule += `;BYMONTHDAY=${byMonthDay}`;
+    if (bySetPos) rrule += `;BYSETPOS=${bySetPos}`;
+    if (byMonth) rrule += `;BYMONTH=${byMonth}`;
+
+    return rrule;
 }
 
-function rruleStringFrequency(string) {
-    const index = string.indexOf("FREQ=", 0) + 5;
-    return string.substring(index, string.indexOf(';', index));
-}
+function rruleObject(rruleString=null) {
+    let rrule = {start: DateTime.local(), frequency: "DAILY", interval: 1, count: null, until: null, byDay: null, byMonthDay: null, bySetPos: null, byMonth: null};
+    if (rruleString === null) return rrule;
 
-function rruleStringInterval(string) {
-    const index = string.indexOf("INTERVAL=", 0) + 9;
-    return parseInt(string.substring(index, string.length));
+    let [upper, lower] = rruleString.split('\n');
+    upper = upper.split('=')[1].split(':');
+    lower = lower.split(':')[1].split(';');
+
+    rrule.start = rruleDateToDateTime(upper[1], upper[0]);
+
+    for (let i = 0; i < lower.length; i++) {
+        const [left, right] = lower[i].split('=');
+        switch (left) {
+            case "FREQ":
+                rrule.frequency = right;
+                break;
+            case "INTERVAL":
+                rrule.interval = parseInt(right);
+                break;
+            case "COUNT":
+                rrule.count = parseInt(right);
+                break;
+            case "UNTIL":
+                rrule.until = rruleDateToDateTime(right);
+                break;
+            case "BYDAY":
+                rrule.byDay = right.split();
+                break;
+            case "BYMONTHDAY":
+                rrule.byMonthDay = parseInt(right);
+                break;
+            case "BYSETPOS":
+                rrule.bySetPos = parseInt(right);
+                break;
+            case "BYMONTH":
+                rrule.byMonth = parseInt(right);
+                break;
+            default:
+                break;
+        }
+    }
+
+    return rrule;
 }
 
 export {
@@ -267,10 +318,7 @@ export {
     overlapSearch,
     pad,
     rruleString,
-    rruleStringUntilDate,
-    rruleStringTimeZone,
-    rruleStringFrequency,
-    rruleStringInterval,
+    rruleObject,
     invert,
     pathLowestLevel,
     randomColor,

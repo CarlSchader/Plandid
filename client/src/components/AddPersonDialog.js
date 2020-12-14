@@ -1,5 +1,4 @@
 import React, {useState} from "react";
-import {executeQuery} from "../utilities";
 
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
@@ -9,11 +8,11 @@ import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 
 export default function AddPersonDialog(props) {
-    const {open=false, setOpen=() => {}, onAddCallback=() => {}} = props;
+    const {open=false, setOpen=() => {}, onAdd=name => {}} = props;
     const [newName, setNewName] = useState("");
 
     function addPerson() {
-        executeQuery({path: "/people/addPerson", data: {name: newName}, onResponse: onAddCallback})();
+        onAdd(newName);
         handleClose();
     }
 
