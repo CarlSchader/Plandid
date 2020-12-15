@@ -283,7 +283,7 @@ function rruleObject(rruleString=null) {
                 rrule.until = rruleDateToDateTime(right);
                 break;
             case "BYDAY":
-                rrule.byDay = right.split();
+                rrule.byDay = right.split(',');
                 break;
             case "BYMONTHDAY":
                 rrule.byMonthDay = parseInt(right);

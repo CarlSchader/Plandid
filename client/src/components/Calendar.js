@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from "react-dom";
-// import { Popover, OverlayTrigger } from 'react-bootstrap';
-import {createMuiTheme, ThemeProvider} from '@material-ui/core/styles';
+import React, { useState, useRef } from 'react';
+
 import { DateTime, Interval } from "luxon";
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -13,18 +11,14 @@ import luxonPlugin from '@fullcalendar/luxon';
 import {rruleString, rruleObject, copyObject, localDate} from "../utilities";
 import EventPopover from './EventPopover';
 
-import config from "../config";
-
-const popperTheme = createMuiTheme({
-    palette: config.colors,
-});
-
 function Calendar({tier=""}) {
     const calendarRef = useRef(null);
     const [state, setState] = useState(1);
     const [selectedDate, setSelectedDate] = useState(DateTime.local());
     const {0: plans} = useState([]);
     const [newEvents, setNewEvents] = useState([]);
+    const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
+    const [currentInfo, setCurrentInfo] = useState(null);
 
     const states = {
         0: {
@@ -76,9 +70,9 @@ function Calendar({tier=""}) {
     };
 
     // eslint-disable-next-line
-    useEffect(function() {
+    // useEffect(function() {
 
-    }, [])
+    // }, [newEvents, plans]);
 
     function getCalendarEvents() {
         let events = []
@@ -151,9 +145,7 @@ function Calendar({tier=""}) {
             id = parseInt(event.groupId[1]);
             rruleObj.start = rruleObj.start.plus(difference);
             if (rruleObj.until) rruleObj.until = rruleObj.until.plus(difference);
-            // console.log(1, rrule, rruleObj)
             rrule = rruleString(rruleObj);
-            // console.log(2, rrule)
         }
         else {
             idLetter = event.id[0];
@@ -177,32 +169,25 @@ function Calendar({tier=""}) {
         }
     }
 
-    function onEventRender(info) {
-        let setEventsFunction = () => {};
-        let eventsArray = [];
-        switch (info.event.id[0]) {
-            case 'n':
-                setEventsFunction = setNewEvents;
-                eventsArray = copyObject(newEvents);
-                break;
-            default:
-                break;
+    function dialogJsx() {
+        if (currentInfo) {
+            return <EventPopover
+            open={eventPopoverOpen}
+            setOpen={setEventPopoverOpen}
+            info={currentInfo} 
+            eventsArray={newEvents} 
+            setNewEvents={setNewEvents}
+            calendarRef={calendarRef}
+            />;
         }
-        const content = (
-            <ThemeProvider theme={popperTheme}>
-                <EventPopover
-                info={info} 
-                eventsArray={eventsArray} 
-                setEvents={setEventsFunction}
-                />
-            </ThemeProvider>
-        );
-      
-        ReactDOM.render(content, info.el);
-      }
+        else {
+            return <div></div>
+        }
+    }
 
     return (
-        <FullCalendar
+        <div>
+            <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin, luxonPlugin]}
             firstDay={1}
@@ -223,7 +208,7 @@ function Calendar({tier=""}) {
             eventDrop={onCalendarEventChange}
             eventResize={onCalendarEventChange}
 
-            eventClick={onEventRender}
+            eventClick={info => {setCurrentInfo(info); setEventPopoverOpen(true)}}
 
             customButtons={{
                 monthButton: {
@@ -251,7 +236,9 @@ function Calendar({tier=""}) {
                     click: _ => {}
                 }
             }}
-        />
+            />
+            {dialogJsx()}
+        </div>
     );
 }
 

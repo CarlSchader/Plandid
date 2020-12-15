@@ -23,12 +23,11 @@ const useStyles = makeStyles(theme => ({
     }
 }));
 
-function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
+function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false, setOpen=() => {}}) {
     const [newName, setNewName] = useState(info.event.extendedProps.name);
     const [rrule, setRRule] = useState(info.event.extendedProps.rrule);
     const [doesRepeat, setDoesRepeat] = useState(info.event.extendedProps.rrule !== null ? true : false);
     const [category, setCategory] = useState(info.event.extendedProps.category);
-    const [open, setOpen] = useState(true);
     const classes = useStyles();
 
     let id = "";
@@ -46,8 +45,9 @@ function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
         if (idLetter === 'n') {
             let eventsCopy = copyObject(eventsArray);
             eventsCopy.splice(idNumb, 1);
-            setEvents(eventsCopy);
+            setNewEvents(eventsCopy);
         }
+        info.event.remove();
     }
 
     function onApply() {
@@ -64,7 +64,7 @@ function EventPopover({info={}, eventsArray=[], setEvents=() => {}}) {
         newEvent.rrule = rrule;
         newEvent.category = category;
         eventsArray[idNumb] = newEvent;
-        setEvents(eventsArray);
+        setNewEvents(eventsArray);
     }
 
     function repeatingJsx() {

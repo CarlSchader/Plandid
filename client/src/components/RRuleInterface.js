@@ -29,9 +29,9 @@ export default function RRuleInterface(props) {
     const [bySetPos, setBySetPos] = useState(rruleObj.bySetPos || 1);
     const [byMonth, setByMonth] = useState(rruleObj.byMonth || DateTime.local().month);
 
-    const [endOption, setEndOption] = useState(until ? "UNTIL" : (count ? "COUNT" : "NONE"));
-    const [monthlyOption, setMonthlyOption] = useState(byMonthDay ? "BYMONTHDAY" : "BYSETPOS");
-    const [yearlyOption, setYearlyOption] = useState(byMonthDay ? "BYMONTHDAY" : "BYSETPOS");
+    const [endOption, setEndOption] = useState(rruleObj.until ? "UNTIL" : (rruleObj.count ? "COUNT" : "NONE"));
+    const [monthlyOption, setMonthlyOption] = useState(rruleObj.frequency === "MONTHLY" && rruleObj.byMonthDay ? "BYMONTHDAY" : "BYSETPOS");
+    const [yearlyOption, setYearlyOption] = useState(rruleObj.frequency === "YEARLY" && rruleObj.byMonthDay ? "BYMONTHDAY" : "BYSETPOS");
 
     useEffect(function() { // If there are problems, this needs to only set the new rrule with appropriate tokens based on the frequency.
         let finalObj = {};
@@ -171,7 +171,7 @@ export default function RRuleInterface(props) {
     function weekly() {
         function daySelected(day) {
             if (Array.isArray(byDay)) return byDay.includes(day);
-            else return day === byDay;
+            else byDay.split(',').includes(day);
         }
 
         function handleClick(day) {
@@ -216,7 +216,7 @@ export default function RRuleInterface(props) {
                 break;
             case "BYSETPOS":
                 let byDayString = copyObject(byDay);
-                if (Array.isArray(byDay)) byDayString = byDayString.join();
+                if (Array.isArray(byDay)) byDayString = byDayString.join(',');
                 optionJsx = [
                     <Select value={bySetPos} defaultValue={1} onChange={e => setBySetPos(parseInt(e.target.value))}>
                         <MenuItem value={1}>First</MenuItem>
@@ -302,7 +302,7 @@ export default function RRuleInterface(props) {
                 break;
             case "BYSETPOS":
                 let byDayString = copyObject(byDay);
-                if (Array.isArray(byDay)) byDayString = byDayString.join();
+                if (Array.isArray(byDay)) byDayString = byDayString.join(',');
                 optionJsx = [
                     <Select value={bySetPos} defaultValue={1} onChange={e => setBySetPos(parseInt(e.target.value))}>
                         <MenuItem value={1}>First</MenuItem>
