@@ -157,7 +157,7 @@ export default function RRuleInterface(props) {
 
         return (
             <FormControl>
-                <FormLabel>Ends</FormLabel>
+                <FormLabel>Stops Repeating</FormLabel>
                 <Select label="End" value={endOption} defaultValue={1} onChange={e => setEndOption(e.target.value)}>
                     <MenuItem value="NONE">Never</MenuItem>
                     <MenuItem value="COUNT">After</MenuItem>

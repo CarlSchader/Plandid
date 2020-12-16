@@ -1,5 +1,6 @@
 import React from "react";
 import CategoryPicker from "./CategoryPicker";
+import AvailabilitiesInterface from "./AvailibilityInterface";
 
 import {makeStyles} from "@material-ui/core/styles";
 import Avatar from '@material-ui/core/Avatar';
@@ -23,11 +24,14 @@ export default function PersonPage(props) {
     const {
         name="", 
         categories={}, 
-        // availabilities=[], 
+        availabilities=[],
         onClose=() => {},
         onChangeName=newName => {},
         onCategorySelect=category => {},
-        onCategoryDeselect=category => {}
+        onCategoryDeselect=category => {},
+        onAddAvailability=availibility => {},
+        onChangeAvailability=availibility => {},
+        onRemoveAvailibility=availibility => {},
     } = props;
     const classes = useStyles();
 
@@ -58,6 +62,14 @@ export default function PersonPage(props) {
             </Grid>
             <Grid item xs={12}>
                 <CategoryPicker selectedCategories={categories} onSelect={onCategorySelect} onDeselect={onCategoryDeselect} />
+            </Grid>
+            <Grid item xs={12}>
+                {/* <AvailabilitiesInterface 
+                availabilities={availabilities} 
+                onAdd={onAddAvailability} 
+                onChange={onChangeAvailability} 
+                onRemove={onRemoveAvailibility}
+                /> */}
             </Grid>
         </Grid>
     );
