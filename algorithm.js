@@ -20,6 +20,64 @@ function overlapSearch(item, list, startKey="start", endKey="end") {
     return false;
 }
 
+function closestGreaterIndex(list, searchValue, lessThan) {
+    if (list.length < 1) {
+        return -1;
+    }
+    let min = 0;
+    let max = list.length - 1;
+    let index = -1;
+
+    while (min <= max) {
+        index = Math.floor((min + max) / 2);
+        if (lessThan(list[index], searchValue)) {
+            min = index + 1;
+        }
+        else {
+            max = index - 1;
+        }
+    }
+    if (lessThan(list[index], searchValue)) {
+        index++;
+    }
+
+    if (index > list.length - 1) {
+        return -1;
+    }
+    else {
+        return index;
+    }
+}
+
+function closestLesserIndex(list, searchValue, lessThan) {
+    if (list.length < 1) {
+        return -1;
+    }
+    let min = 0;
+    let max = list.length - 1;
+    let index = -1;
+
+    while (min <= max) {
+        index = Math.floor((min + max) / 2);
+        if (lessThan(searchValue, list[index])) {
+            max = index - 1;
+        }
+        else {
+            min = index + 1;
+        }
+    }
+    if (lessThan(searchValue, list[index])) {
+        index--;
+    }
+
+    if (index < 0) {
+        return -1;
+    }
+    else {
+        return index;
+    }
+}
+
 // Adds an element to a list but merges the elements if there ranges overlap.
 // The range start is found with the startKey and the end with the endKey.
 function rangeMerge(

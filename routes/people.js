@@ -50,9 +50,32 @@ router.post("/setCategories", async function(req, res) {
     return res.json(0);
 });
 
-// userID, scheduleName, name, utcStart, utcEnd
+// userID, scheduleName, name, utcStart, utcEnd, timezone, rrule
 router.post("/addAvailability", async function(req, res) {
-    await db.addPersonAvailability(req.body.userID, req.body.scheduleName, req.body.name, req.body.utcStart, req.body.utcEnd);
+    await db.addPersonAvailability(
+        req.body.userID, 
+        req.body.scheduleName, 
+        req.body.name, 
+        req.body.utcStart, 
+        req.body.utcEnd,
+        req.body.timezone,
+        req.body.rrule
+        );
+    return res.json(0);
+});
+
+// userID, scheduleName, name, index, utcStart, utcEnd, timezone, rrule
+router.post("/changeAvailability", async function(req, res) {
+    await db.changePersonAvailability(
+        req.body.userID,
+        req.body.scheduleName,
+        req.body.name,
+        req.body.index,
+        req.body.utcStart,
+        req.body.utcEnd,
+        req.body.timezone,
+        req.body.rrule
+    );
     return res.json(0);
 });
 

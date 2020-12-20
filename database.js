@@ -456,25 +456,34 @@ async function changePersonExceptions(userID, scheduleName, name, newExceptions)
 	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
 
-async function addPersonAvailability(userID, scheduleName, name, utcStart, utcEnd) {
-    let normalizedStart = weekMillis(utcStart);
-    let normalizedEnd = weekMillis(utcEnd);
-    let week = (await readPeopleRecord(userID, scheduleName)).people[name].week;
-    let newWeek = rangeMerge(people_availabilitySchema(normalizedStart, normalizedEnd), week, "start", "end");
-	await changePersonWeek(userID, scheduleName, name, newWeek);
+async function addPersonAvailability(userID, scheduleName, name, utcStart, utcEnd, timezone, rrule) {
+    const newAvailability = people_availabilitySchema(utcStart, utcEnd, timezone, rrule);
+    let query = {$push: {}};
+    query["$push"][`people.${name}.availabilities`] = {$each: [newAvailability], $sort: {start: 1}};
+    await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
 
-async function addPersonException(userID, scheduleName, name, utcStart, utcEnd, available, description) {
-    let exceptions = (await readPeopleRecord(userID, scheduleName)).people[name].exceptions;
-	let newExceptions = rangeMerge(people_exceptionSchema(utcStart, utcEnd, available, description), exceptions, "start", "end");
-	await changePersonExceptions(userID, scheduleName, name, newExceptions);
+// async function addPersonException(userID, scheduleName, name, utcStart, utcEnd, available, description) {
+//     let exceptions = (await readPeopleRecord(userID, scheduleName)).people[name].exceptions;
+// 	let newExceptions = rangeMerge(people_exceptionSchema(utcStart, utcEnd, available, description), exceptions, "start", "end");
+// 	await changePersonExceptions(userID, scheduleName, name, newExceptions);
+// }
+
+async function changePersonAvailability(userID, scheduleName, name, index, utcStart, utcEnd, timezone, rrule) {
+    const newAvailability = people_availabilitySchema(utcStart, utcEnd, timezone, rrule);
+    let query = {$set: {}};
+    query["$set"][`people.${name}.availabilities.${index}`] = newAvailability;
+    await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
+    query = {$push: {}};
+    query["$push"][`people.${name}.availabilities`] = {$each: [], $sort: {start: 1}};
+    await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
 
 async function removePersonAvailability(userID, scheduleName, name, index) {
-	let week = (await readPeopleRecord(userID, scheduleName)).people[name].week;
-	week.splice(index, 1);
+	let availabilities = (await readPeopleRecord(userID, scheduleName)).people[name].availabilities;
+	availabilities.splice(index, 1);
 	let query = {$set: {}};
-	query["$set"][`people.${name}.week`] = week;
+	query["$set"][`people.${name}.availabilities`] = availabilities;
 	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
 
@@ -772,8 +781,9 @@ module.exports = {
 	changePersonCategories: changePersonCategories,
 	changePersonWeek: changePersonWeek,
 	changePersonExceptions: changePersonExceptions,
-	addPersonAvailability: addPersonAvailability,
-	addPersonException: addPersonException,
+    addPersonAvailability: addPersonAvailability,
+    changePersonAvailability: changePersonAvailability,
+	// addPersonException: addPersonException,
 	removePersonAvailability: removePersonAvailability,
 	removePersonException: removePersonException,
 	addTask: addTask,
