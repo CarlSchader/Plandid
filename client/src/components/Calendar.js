@@ -9,6 +9,7 @@ import rrulePlugin from '@fullcalendar/rrule';
 import luxonPlugin from '@fullcalendar/luxon';
 
 import {rruleString, rruleObject, copyObject, localDate} from "../utilities";
+import config from "../config";
 import EventPopover from './EventPopover';
 
 function Calendar({tier=""}) {
@@ -23,30 +24,20 @@ function Calendar({tier=""}) {
     const states = {
         0: {
             view: "dayGridMonth",
-            isEditable: false,
-            headerToolbar: {start: "title", canter: "", end: "currentMonth prev,next"},
+            isEditable: true, // NEW was false
+            headerToolbar: {start: "", center: "title", end: "currentMonth prev,next"},
             selectable: true,
             dateClick: dateClickStandard,
             slotDuration: "01:00:00",
             snapDuration: "00:30:00",
             contentHeight: null,
-            height: window.innerHeight
+            height: window.innerHeight,
+            firstDate: 0,
         },
         1: {
             view: "timeGridWeek",
             isEditable: true,
-            headerToolbar: {start: "monthButton title", canter: "title", end: "currentWeek prev,next"},
-            selectable: true,
-            dateClick: dateClickStandard,
-            slotDuration: "00:30:00",
-            snapDuration: "00:05:00",
-            contentHeight: 'auto',
-            height: 'auto'
-        },
-        2: {
-            view: "timeGridDay",
-            isEditable: true,
-            headerToolbar: {start: "weekButton title", canter: "title", end: "currentDay prev,next"},
+            headerToolbar: {start: "monthButton", center: "title", end: "currentWeek prev,next"},
             selectable: true,
             dateClick: async function(info) {
                 let dt = DateTime.fromISO(info.dateStr);
@@ -65,7 +56,33 @@ function Calendar({tier=""}) {
             slotDuration: "00:30:00",
             snapDuration: "00:05:00",
             contentHeight: 'auto',
-            height: 'auto'
+            height: 'auto',
+            firstDate: 0,
+        },
+        2: {
+            view: "timeGridDay",
+            isEditable: true,
+            headerToolbar: {start: "weekButton", center: "title", end: "currentDay prev,next"},
+            selectable: true,
+            dateClick: async function(info) {
+                let dt = DateTime.fromISO(info.dateStr);
+                let newEvent = {
+                    start: dt.toMillis(),
+                    end: dt.plus({hours: 1}).toMillis(),
+                    name: "New Task",
+                    category: null,
+                    timezone: DateTime.local().zoneName,
+                    rrule: null
+                };
+                let events = copyObject(newEvents);
+                events.push(newEvent);
+                setNewEvents(events);
+            },
+            slotDuration: "00:30:00",
+            snapDuration: "00:05:00",
+            contentHeight: 'auto',
+            height: 'auto',
+            firstDate: 0,
         }
     };
 
@@ -75,20 +92,20 @@ function Calendar({tier=""}) {
     // }, [newEvents, plans]);
 
     function getCalendarEvents() {
-        let events = []
+        let events = [];
         for (let i = 0; i < plans.length; i++) {
-            let titleString = `plans[i].taskName: plans[i].personName`;
-            let backgroundColor = "green";
-            if (plans[i].personName === null || plans[i].personName === undefined) {
-                titleString = plans[i].taskName;
-                backgroundColor = "red";
-            }
+            let titleString = `${plans[i].taskName}: ${plans[i].personName}`;
+            let backgroundColor = config.colors.primary.main;
+            let borderColor = config.colors.primary.main;
+            let textColor = config.colors.primary.contrastText;
             events.push({
                 id: i.toString(),
                 title: titleString,
-                start: DateTime.utc(plans[i].start).toISO(),
-                end: DateTime.utc(plans[i].end).toISO(),
+                start: DateTime.fromMillis(plans[i].start).toISO(),
+                end: DateTime.fromMillis(plans[i].end).toISO(),
                 backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                textColor: textColor,
                 extendedProps: plans[i]
             });
         }
@@ -96,6 +113,9 @@ function Calendar({tier=""}) {
             const newEvent = newEvents[i];
             if (newEvent.rrule) {
                 events.push({
+                    backgroundColor: config.colors.primary.main,
+                    borderColor: config.colors.primary.main,
+                    textColor: config.colors.primary.contrastText,
                     groupId: "n" + i.toString(),
                     title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
                     dtstart: localDate(newEvent.start).toISO(),
@@ -106,6 +126,9 @@ function Calendar({tier=""}) {
             }
             else {
                 events.push({
+                    backgroundColor: config.colors.primary.main,
+                    borderColor: config.colors.primary.main,
+                    textColor: config.colors.primary.contrastText,
                     id: "n" + i.toString(),
                     title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
                     start: localDate(newEvent.start).toISO(),
@@ -190,11 +213,11 @@ function Calendar({tier=""}) {
             <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin, luxonPlugin]}
-            firstDay={1}
             timeZone={DateTime.local().zoneName}
             initialView={states[state].view}
             events={getCalendarEvents()}
             initialDate={selectedDate.toISO()}
+            firstDay={states[state].firstDay}
             // expandRows={true}
             editable={states[state].isEditable}
             headerToolbar={states[state].headerToolbar}

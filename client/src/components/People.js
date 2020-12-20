@@ -35,7 +35,15 @@ function People() {
         name={currentName}
         categories={people[currentName] ? people[currentName].categories : {}}
         availabilities={people[currentName] ? people[currentName].availabilities : []}
-        setQuery={setQuery}
+        onAddAvailability={(name, start, end, timezone, rrule) => setQuery({
+            path: "/people/addAvailability",
+            data: {name: name, utcStart: start, utcEnd: end, timezone: timezone, rrule: rrule}
+        })}
+        onChangeAvailability={(name, index, start, end, timezone, rrule) => setQuery({
+            path: "/people/changeAvailability",
+            data: {name: name, index: index, utcStart: start, utcEnd: end, timezone: timezone, rrule: rrule}
+        })}
+        onRemoveAvailibility={(name, index) => setQuery({path: "/people/removeAvailability", data: {name: name, index: index}})}
         onClose={() => setPersonOpen(false)}
         onChangeName={newName => {
             setQuery({path: "/people/changeName", data: {oldName: currentName, newName: newName}, onResponse: res =>

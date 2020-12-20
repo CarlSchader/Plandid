@@ -20,7 +20,7 @@ import FlexibleBox from "./FlexibleBox";
 export default function RRuleInterface(props) {
     const {dtStart=DateTime.local(), rrule="", setRRule=rrule => {}} = props;
     const rruleObj = rruleObject(rrule);
-    const [frequency, setFrequency] = useState(rruleObj.frequency || "DAILY");
+    const [frequency, setFrequency] = useState(rruleObj.frequency || "WEEKLY");
     const [interval, setInterval] = useState(rruleObj.interval || 1);
     const [count, setCount] = useState(rruleObj.count || 1);
     const [until, setUntil] = useState(rruleObj.until || DateTime.local().plus({weeks: 1}));

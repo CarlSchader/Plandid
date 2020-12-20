@@ -13,9 +13,9 @@ const useStyles = makeStyles(theme => ({
         flexGrow: 1,
     },
     avatar: {
-        width: theme.spacing(16),
-        height: theme.spacing(16),
-        fontSize: "6rem",
+        width: theme.spacing(12),
+        height: theme.spacing(12),
+        fontSize: "4rem",
         backgroundColor: theme.palette.primary.light,
     }
 }));
@@ -29,9 +29,9 @@ export default function PersonPage(props) {
         onChangeName=newName => {},
         onCategorySelect=category => {},
         onCategoryDeselect=category => {},
-        onAddAvailability=availibility => {},
-        onChangeAvailability=availibility => {},
-        onRemoveAvailibility=availibility => {},
+        onAddAvailability=(name, start, end, timezone, rrule) => {},
+        onChangeAvailability=(name, index, start, end, timezone, rrule) => {},
+        onRemoveAvailibility=(name, index) => {},
     } = props;
     const classes = useStyles();
 
@@ -43,9 +43,9 @@ export default function PersonPage(props) {
     }
 
     return (
-        <Grid className={classes.root} align="center" alignItems="center" justify="center" container spacing={4}>
+        <Grid className={classes.root} align="center" alignItems="center" justify="center" container spacing={2}>
             <Grid container>
-                <Grid alignItems="flex-start" item xs={3} spacing={4}>
+                <Grid alignItems="flex-start" item xs={3} spacing={2}>
                     <Button style={{margin: "1.5rem"}} size="large" onClick={onClose} color="primary" variant="contained" >Back</Button>
                 </Grid>
             </Grid>
@@ -64,12 +64,12 @@ export default function PersonPage(props) {
                 <CategoryPicker selectedCategories={categories} onSelect={onCategorySelect} onDeselect={onCategoryDeselect} />
             </Grid>
             <Grid item xs={12}>
-                {/* <AvailabilitiesInterface 
+                <AvailabilitiesInterface 
                 availabilities={availabilities} 
-                onAdd={onAddAvailability} 
-                onChange={onChangeAvailability} 
-                onRemove={onRemoveAvailibility}
-                /> */}
+                onAdd={(start, end, timezone, rrule) => onAddAvailability(name, start, end, timezone, rrule)} 
+                onChange={(index, start, end, timezone, rrule) => onChangeAvailability(name, index, start, end, timezone, rrule)} 
+                onRemove={index => onRemoveAvailibility(name, index)}
+                />
             </Grid>
         </Grid>
     );

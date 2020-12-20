@@ -233,7 +233,7 @@ function rruleDateToDateTime(dateString, timezone=null) {
 /* Function behavior is undefined if start and until timezones are not the same.
 Whatever parameters you put in will go into the string even if it's no longer a valid rrule.
 Notes: bySetPos can be -1, in this case it matches the last of that day for that month. */
-function rruleString(rruleObject) {
+function rruleString(rruleObject=null) {
     const {
         start=DateTime.local(), 
         frequency="DAILY", 
