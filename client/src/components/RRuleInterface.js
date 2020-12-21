@@ -20,14 +20,14 @@ import FlexibleBox from "./FlexibleBox";
 export default function RRuleInterface(props) {
     const {dtStart=DateTime.local(), rrule="", setRRule=rrule => {}} = props;
     const rruleObj = rruleObject(rrule);
-    const [frequency, setFrequency] = useState(rruleObj.frequency || "WEEKLY");
-    const [interval, setInterval] = useState(rruleObj.interval || 1);
-    const [count, setCount] = useState(rruleObj.count || 1);
-    const [until, setUntil] = useState(rruleObj.until || DateTime.local().plus({weeks: 1}));
-    const [byDay, setByDay] = useState(rruleObj.byDay || ["MO"]);
-    const [byMonthDay, setByMonthDay] = useState(rruleObj.byMonthDay || DateTime.local().day);
-    const [bySetPos, setBySetPos] = useState(rruleObj.bySetPos || 1);
-    const [byMonth, setByMonth] = useState(rruleObj.byMonth || DateTime.local().month);
+    const [frequency, setFrequency] = useState(rrule ? rruleObj.frequency : "WEEKLY");
+    const [interval, setInterval] = useState(rrule ? rruleObj.interval : 1);
+    const [count, setCount] = useState(rrule ? rruleObj.count : 1);
+    const [until, setUntil] = useState(rrule ? rruleObj.until : DateTime.local().plus({weeks: 1}));
+    const [byDay, setByDay] = useState(rrule ? rruleObj.byDay : ["MO"]);
+    const [byMonthDay, setByMonthDay] = useState(rrule ? rruleObj.byMonthDay : DateTime.local().day);
+    const [bySetPos, setBySetPos] = useState(rrule ? rruleObj.bySetPos : 1);
+    const [byMonth, setByMonth] = useState(rrule ? rruleObj.byMonth : DateTime.local().month);
 
     const [endOption, setEndOption] = useState(rruleObj.until ? "UNTIL" : (rruleObj.count ? "COUNT" : "NONE"));
     const [monthlyOption, setMonthlyOption] = useState(rruleObj.frequency === "MONTHLY" && rruleObj.byMonthDay ? "BYMONTHDAY" : "BYSETPOS");
@@ -178,7 +178,7 @@ export default function RRuleInterface(props) {
             let byDayCopy = copyObject(byDay);
             if (!Array.isArray(byDayCopy)) byDayCopy = byDayCopy.split(',');
             if (!daySelected(day)) byDayCopy.push(day);
-            else byDayCopy.splice(byDayCopy.indexOf(day), 1);
+            else if (byDayCopy.length > 1) byDayCopy.splice(byDayCopy.indexOf(day), 1);
             setByDay(byDayCopy);
         }
 

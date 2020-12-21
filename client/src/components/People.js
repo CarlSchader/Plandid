@@ -19,15 +19,17 @@ function People() {
     }), [query]);
 
     function onCategorySelect(category) {
-        let newCats = copyObject(people[currentName].categories);
-        newCats[category] = "";
-        setQuery({path: "/people/setCategories", data: {name: currentName, categories: newCats}});
+        let newPeople = copyObject(people);
+        newPeople[currentName].categories[category] = "";
+        setPeople(newPeople);
+        setQuery({path: "/people/setCategories", data: {name: currentName, categories: newPeople[currentName].categories}});
     }
 
     function onCategoryDeselect(category) {
-        let newCats = copyObject(people[currentName].categories);
-        delete newCats[category];
-        setQuery({path: "/people/setCategories", data: {name: currentName, categories: newCats}});
+        let newPeople = copyObject(people);
+        delete newPeople[currentName].categories[category];
+        setPeople(newPeople);
+        setQuery({path: "/people/setCategories", data: {name: currentName, categories: newPeople[currentName].categories}});
     }
 
     if (personOpen) {

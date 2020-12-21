@@ -166,7 +166,7 @@ function executeQuery(query=null, afterQuery=null) {
 
 // onResponse takes a response argument.
 function sendRequest(path, data, onResponse=function(res) {if (res.data !== 0) window.alert(res.data)}) {
-    axios.post(path, data, {baseURL: config.url, withCredentials: true}).then(onResponse);
+    axios.post(path, data, {baseURL: config.url, withCredentials: true}).then(res => res.data === -1 ? window.location.reload() : onResponse(res));
 }
 
 function variantFromCategory(category, defaultVariant="") {
@@ -248,11 +248,40 @@ function rruleString(rruleObject=null) {
 
     let rrule = `DTSTART;TZID=${start.zoneName}:${pad(start.year, 4)}${pad(start.month, 2)}${pad(start.day, 2)}T${pad(start.hour, 2)}${pad(start.minute, 2)}${pad(start.second, 2)}\nRRULE:FREQ=${frequency.toUpperCase()};INTERVAL=${interval}`;
     if (count) rrule += `;COUNT=${count}`;
-    if (until) rrule += `;UNTIL=${pad(until.year, 4)}${pad(until.month, 2)}${pad(until.day, 2)}T${pad(until.hour, 2)}${pad(until.minute, 2)}${pad(until.second, 2)}`;
-    if (byDay) rrule += `;BYDAY=${Array.isArray(byDay) ? byDay.join().toUpperCase() : byDay}`;
-    if (byMonthDay) rrule += `;BYMONTHDAY=${byMonthDay}`;
-    if (bySetPos) rrule += `;BYSETPOS=${bySetPos}`;
-    if (byMonth) rrule += `;BYMONTH=${byMonth}`;
+    else if (until) rrule += `;UNTIL=${pad(until.year, 4)}${pad(until.month, 2)}${pad(until.day, 2)}T${pad(until.hour, 2)}${pad(until.minute, 2)}${pad(until.second, 2)}`;
+    switch (frequency) {
+        case "WEEKLY":
+            if (byDay && byDay.length > 0) rrule += `;BYDAY=${Array.isArray(byDay) ? byDay.join().toUpperCase() : byDay}`;
+            else rrule += ";BYDAY=MO";
+            break;
+        case "MONTHLY":
+            if (byMonthDay) rrule += `;BYMONTHDAY=${byMonthDay}`;
+            else if (bySetPos && byDay && byDay.length > 0) {
+                rrule += `;BYSETPOS=${bySetPos}`;
+                rrule += `;BYDAY=${Array.isArray(byDay) ? byDay.join().toUpperCase() : byDay}`;
+            }
+            else rrule += ";BYMONTHDAY=1";
+            break;
+        case "YEARLY":
+            if (byMonth && byMonthDay) {
+                rrule += `;BYMONTH=${byMonth}`;
+                rrule += `;BYMONTHDAY=${byMonthDay}`;
+            }
+            else if (byMonth && bySetPos && byDay && byDay.length > 0) {
+                rrule += `;BYMONTH=${byMonth}`;
+                rrule += `;BYSETPOS=${bySetPos}`;
+                rrule += `;BYDAY=${Array.isArray(byDay) ? byDay.join().toUpperCase() : byDay}`;
+            }
+            else rrule += ";BYMONTH=1;BYMONTHDAY=1";
+            break;
+        default:
+            break;
+    }
+    
+    // if (byDay) rrule += `;BYDAY=${Array.isArray(byDay) ? byDay.join().toUpperCase() : byDay}`;
+    // if (byMonthDay) rrule += `;BYMONTHDAY=${byMonthDay}`;
+    // if (bySetPos) rrule += `;BYSETPOS=${bySetPos}`;
+    // if (byMonth) rrule += `;BYMONTH=${byMonth}`;
 
     return rrule;
 }

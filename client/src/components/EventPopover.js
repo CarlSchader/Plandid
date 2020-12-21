@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {copyObject, localDate} from "../utilities";
 import CategoryPicker from "./CategoryPicker";
 import RRuleInterface from "./RRuleInterface";
@@ -37,6 +37,11 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
     else {
         id = info.event.id;
     }
+
+    useEffect(function() {
+        setRRule(info.event.extendedProps.rrule);
+        setDoesRepeat(info.event.extendedProps.rrule !== null ? true : false);
+    }, [info]);
 
     function deleteEvent() {
         setOpen(false);

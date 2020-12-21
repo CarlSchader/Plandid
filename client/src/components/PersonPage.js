@@ -7,6 +7,7 @@ import Avatar from '@material-ui/core/Avatar';
 import TextField from "@material-ui/core/TextField";
 import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
+import { Typography } from "@material-ui/core";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -62,6 +63,9 @@ export default function PersonPage(props) {
             </Grid>
             <Grid item xs={12}>
                 <CategoryPicker selectedCategories={categories} onSelect={onCategorySelect} onDeselect={onCategoryDeselect} />
+            </Grid>
+            <Grid item xs={12}>
+                <Typography variant="h4">What times is {name} available?</Typography>
             </Grid>
             <Grid item xs={12}>
                 <AvailabilitiesInterface 

@@ -9,7 +9,8 @@ import rrulePlugin from '@fullcalendar/rrule';
 import luxonPlugin from '@fullcalendar/luxon';
 
 import config from "../config";
-import {rruleObject, rruleString} from "../utilities";
+import {rruleObject, rruleString, copyObject} from "../utilities";
+import {millisecondMap} from "../constants";
 import RRuleInterface from "./RRuleInterface";
 
 import Dialog from "@material-ui/core/Dialog";
@@ -19,6 +20,38 @@ import RadioGroup from "@material-ui/core/RadioGroup";
 import Radio from "@material-ui/core/Radio";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 
+const minSelectMinutes = 10;
+const selectMinutesModulus = 5;
+
+function createEvent(availability, id) {
+    let event = {
+        title: "Available",
+        backgroundColor: config.colors.primary.main,
+        borderColor: config.colors.primary.main,
+        textColor: config.colors.primary.contrastText
+    }
+    if (availability.rrule) {
+        event.groupId = id;
+        event.rrule = availability.rrule;
+        event.dtStart = DateTime.fromMillis(availability.start).toISO();
+        event.duration = {milliseconds: availability.end - availability.start}
+    }
+    else {
+        event.id = id;
+        event.start = DateTime.fromMillis(availability.start).toISO();
+        event.end = DateTime.fromMillis(availability.end).toISO();
+    }
+    return event;
+}
+
+function createEvents(availabilities) {
+    let events = [];
+    for (let i = 0; i < availabilities.length; i++) {
+        events.push(createEvent(availabilities[i], i.toString()));
+    }
+    return events;
+}
+
 export default function AvailibilityInterface(props) {
     const {
         availabilities=[], 
@@ -26,6 +59,8 @@ export default function AvailibilityInterface(props) {
         onChange=(index, start, end, timezone, rrule) => {}, 
         onRemove=index => {}
     } = props;
+
+    const [events, setEvents] = useState([]);
     const [index, setIndex] = useState(-1);
     const [dialogOpen, setDialogOpen] = useState(false);
     const calendarRef = useRef(null);
@@ -34,6 +69,7 @@ export default function AvailibilityInterface(props) {
     const [newRule, setNewRule] = useState(null);
 
     useEffect(function() {
+        setEvents(createEvents(availabilities))
         if (index >= 0 && index < availabilities.length) {
             if (availabilities[index].rrule !== null) {
                 setChecked(true);
@@ -44,38 +80,33 @@ export default function AvailibilityInterface(props) {
                 setNewRule(null);
             }
         }
-    }, [index, availabilities])
+    }, [index, availabilities, setNewRule]);
 
-    function createEvents() {
-        let events = [];
-        for (let i = 0; i < availabilities.length; i++) {
-            events.push({
-                title: "Available",
-                backgroundColor: config.colors.primary.main,
-                borderColor: config.colors.primary.main,
-                textColor: config.colors.primary.contrastText
-            });
-            if (availabilities[i].rrule) {
-                events[i].groupId = i.toString();
-                events[i].rrule = availabilities[i].rrule;
-                events[i].dtStart = DateTime.fromMillis(availabilities[i].start).toISO();
-                events[i].duration = {milliseconds: availabilities[i].end - availabilities[i].start}
-            }
-            else {
-                events[i].id = i.toString();
-                events[i].start = DateTime.fromMillis(availabilities[i].start).toISO();
-                events[i].end = DateTime.fromMillis(availabilities[i].end).toISO();
-            }
-        }
-        return events;
+    function localAdd(info) {
+        let eventsCopy = copyObject(events);
+        const start = DateTime.fromISO(info.startStr).toMillis();
+        let distance = Math.max(DateTime.fromISO(info.endStr).toMillis() - start, minSelectMinutes * millisecondMap.minute);
+        distance = distance - (distance % (selectMinutesModulus * millisecondMap.minute));
+        eventsCopy.push(createEvent({
+            start: start,
+            end: start + distance,
+            timezone: DateTime.local().zoneName,
+            rrule: null}, events.length.toString()));
+        setEvents(eventsCopy);
+        onAdd(
+            start, 
+            start + distance, 
+            DateTime.local().zoneName, 
+            null
+        );
     }
 
-    function onEventChange(info) {
-        const index = parseInt(info.event.id || info.event.groupId);
+    function localChange(info) {
+        const eventIndex = parseInt(info.event.id || info.event.groupId);
         const start = DateTime.fromISO(info.event.startStr).toMillis();
         const end = DateTime.fromISO(info.event.endStr).toMillis();
-        const diff = start - availabilities[index].start;
-        let rrule = availabilities[index].rrule;
+        const diff = start - availabilities[eventIndex].start;
+        let rrule = availabilities[eventIndex].rrule;
         if (rrule) {
             let rruleObj = rruleObject(rrule);
             rruleObj.start = DateTime.fromMillis(start);
@@ -84,7 +115,17 @@ export default function AvailibilityInterface(props) {
             }
             rrule = rruleString(rruleObj);
         }
-        onChange(index, start, end, availabilities[index].timezone, rrule);
+        let newEvents = copyObject(events);
+        newEvents[eventIndex] = info.event;
+        setEvents(newEvents);
+        onChange(eventIndex, start, end, availabilities[eventIndex].timezone, rrule);
+    }
+
+    function localRemove(removeIndex) {
+        let eventsCopy = copyObject(events);
+        eventsCopy.splice(removeIndex, 1);
+        setEvents(eventsCopy);
+        onRemove(index);
     }
 
     function dialogJsx() {
@@ -99,7 +140,7 @@ export default function AvailibilityInterface(props) {
                 );
             }
             return <FormControl>
-                <Button style={{float: "right"}} variant="outlined" color="primary" onClick={() => {setDialogOpen(false); onRemove(index)}}>Delete</Button>
+                <Button style={{float: "right"}} variant="outlined" color="primary" onClick={() => {setDialogOpen(false); localRemove(index);}}>Delete</Button>
                 <RadioGroup value={checked ? "right" : "left"}>
                     <FormControlLabel
                     value="left"
@@ -134,10 +175,13 @@ export default function AvailibilityInterface(props) {
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin, luxonPlugin]}
                 headerToolbar={headerToolbar}
+                eventResizableFromStart={true}
+                // selectMirror={true}
+                longPressDelay={333}
                 firstDay={0}
                 timeZone={DateTime.local().zoneName}
                 initialView={"timeGridWeek"}
-                events={createEvents()}
+                events={events}
                 initialDate={DateTime.local().toISO()}
                 editable={true}
                 selectable={true}
@@ -145,14 +189,10 @@ export default function AvailibilityInterface(props) {
                 height="auto"
                 views={{
                     timeGridWeek: {
-                        dateClick: info => onAdd(
-                            DateTime.fromISO(info.dateStr).toMillis(), 
-                            DateTime.fromISO(info.dateStr).plus({hours: 1}).toMillis(),
-                            DateTime.local().zoneName,
-                            null
-                        ),
-                        slotDuration: "00:30:00",
-                        snapDuration: "00:05:00",
+                        // dateClick: localAdd,
+                        select: localAdd,
+                        slotDuration: "00:15:00",
+                        snapDuration: `00:05:00`,
                     },
                     dayGridMonth: {
                         dateClick: info => {
@@ -161,7 +201,7 @@ export default function AvailibilityInterface(props) {
                             setHeaderToolbar({start: "monthButton", center: "title", end: "today prev,next"});
                         },
                         slotDuration: "01:00:00",
-                        snapDuration: "00:05:00",
+                        snapDuration: `00:05:00`,
                     }
                 }}
                 customButtons={{
@@ -174,8 +214,8 @@ export default function AvailibilityInterface(props) {
                     }
                 }}
 
-                eventDrop={onEventChange}
-                eventResize={onEventChange}
+                eventDrop={localChange}
+                eventResize={localChange}
 
                 eventClick={info => {setIndex(parseInt(info.event.id || info.event.groupId)); setDialogOpen(true);}}
                 />

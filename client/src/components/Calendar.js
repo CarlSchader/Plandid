@@ -9,8 +9,12 @@ import rrulePlugin from '@fullcalendar/rrule';
 import luxonPlugin from '@fullcalendar/luxon';
 
 import {rruleString, rruleObject, copyObject, localDate} from "../utilities";
+import {millisecondMap} from "../constants";
 import config from "../config";
 import EventPopover from './EventPopover';
+
+const minSelectMinutes = 10;
+const selectMinutesModulus = 5;
 
 function Calendar({tier=""}) {
     const calendarRef = useRef(null);
@@ -28,6 +32,7 @@ function Calendar({tier=""}) {
             headerToolbar: {start: "", center: "title", end: "currentMonth prev,next"},
             selectable: true,
             dateClick: dateClickStandard,
+            select: () => {},
             slotDuration: "01:00:00",
             snapDuration: "00:30:00",
             contentHeight: null,
@@ -39,11 +44,14 @@ function Calendar({tier=""}) {
             isEditable: true,
             headerToolbar: {start: "monthButton", center: "title", end: "currentWeek prev,next"},
             selectable: true,
-            dateClick: async function(info) {
-                let dt = DateTime.fromISO(info.dateStr);
+            dateClick: () => {},
+            select: async function(info) {
+                const start = DateTime.fromISO(info.startStr).toMillis();
+                let distance = Math.max(DateTime.fromISO(info.endStr).toMillis() - start, minSelectMinutes * millisecondMap.minute);
+                distance = distance - (distance % (selectMinutesModulus * millisecondMap.minute));
                 let newEvent = {
-                    start: dt.toMillis(),
-                    end: dt.plus({hours: 1}).toMillis(),
+                    start: start,
+                    end: start + distance,
                     name: "New Task",
                     category: null,
                     timezone: DateTime.local().zoneName,
@@ -53,8 +61,8 @@ function Calendar({tier=""}) {
                 events.push(newEvent);
                 setNewEvents(events);
             },
-            slotDuration: "00:30:00",
-            snapDuration: "00:05:00",
+            slotDuration: "00:15:00",
+            snapDuration: `00:05:00`,
             contentHeight: 'auto',
             height: 'auto',
             firstDate: 0,
@@ -64,7 +72,8 @@ function Calendar({tier=""}) {
             isEditable: true,
             headerToolbar: {start: "weekButton", center: "title", end: "currentDay prev,next"},
             selectable: true,
-            dateClick: async function(info) {
+            dateClick: () => {},
+            select: async function(info) {
                 let dt = DateTime.fromISO(info.dateStr);
                 let newEvent = {
                     start: dt.toMillis(),
@@ -78,8 +87,8 @@ function Calendar({tier=""}) {
                 events.push(newEvent);
                 setNewEvents(events);
             },
-            slotDuration: "00:30:00",
-            snapDuration: "00:05:00",
+            slotDuration: "00:15:00",
+            snapDuration: `00:05:00`,
             contentHeight: 'auto',
             height: 'auto',
             firstDate: 0,
@@ -192,6 +201,13 @@ function Calendar({tier=""}) {
         }
     }
 
+    // function handleMirror(info) {
+    //     info.el.style.backgroundColor = config.colors.primary.main;
+    //     info.el.style.borderColor = config.colors.primary.main;
+    //     info.el.style.textColor = config.colors.primary.contrastText;
+    //     document.activeElement.blur();
+    // }
+
     function dialogJsx() {
         if (currentInfo) {
             return <EventPopover
@@ -218,16 +234,21 @@ function Calendar({tier=""}) {
             events={getCalendarEvents()}
             initialDate={selectedDate.toISO()}
             firstDay={states[state].firstDay}
+            eventResizableFromStart={true}
+            // selectMirror={true}
+            longPressDelay={333}
             // expandRows={true}
             editable={states[state].isEditable}
             headerToolbar={states[state].headerToolbar}
             selectable={states[state].selectable}
             dateClick={states[state].dateClick}
+            select={states[state].select}
             slotDuration={states[state].slotDuration}
             snapDuration={states[state].snapDuration}
             contentHeight={states[state].contentHeight}
             height={states[state].height}
 
+            // eventDidMount={info => {if (info.isMirror) handleMirror(info)}}
             eventDrop={onCalendarEventChange}
             eventResize={onCalendarEventChange}
 
