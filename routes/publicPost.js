@@ -54,13 +54,11 @@ router.post("/signUp", async function(req, res) {
     if (!await db.accountExists(req.body.email)) { // Email not in database.
         let validationRecord = await db.readEmailValidationRecordFromEmail(req.body.email);
         if (validationRecord !== null) { // Email validation already sent
-            return res.json(2);
+            await db.removeEmailValidationRecord(validationRecord.key);
         }
-        else {
-            let key = await db.createEmailValidationRecord(req.body.email, req.body.password);
-            sendEmail(req.body.email, `Welcome to ${appName}`, emailString(key));
-            return res.json(0);
-        }
+        let key = await db.createEmailValidationRecord(req.body.email, req.body.password);
+        sendEmail(req.body.email, `Welcome to ${appName}`, emailString(key));
+        return res.json(0);
     }
     else { // 1: Email is already in database.
         return res.json(1);

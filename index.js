@@ -69,14 +69,9 @@
                 req.body.tier = userData.tier;
                 return next();
             }
-            else {
-                return res.json(-1);
-            }
         }
-        else {
-            return res.json(-1);
-        }
-    })
+        return res.json(-1);
+    });
 
     app.use("/online", require("./routes/online"));
     app.use("/userData", require("./routes/userData"));

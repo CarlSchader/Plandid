@@ -386,7 +386,8 @@ async function isLoggedInEmail(email) {
 }
 
 async function userIDfromSessionID(sessionID) {
-    return (await read(names.online, {sessionID: sessionID})).userID;
+    const record = await read(names.online, {sessionID: sessionID});
+    return record ? record.userID : null;
 }
 
 async function changeUserDataEmail(userID, newEmail) {

@@ -3,6 +3,7 @@ import { millisecondMap } from "./constants";
 const config = {
     url: 'http://carlschader.com',
     appName: 'Plandid',
+    loginPath: "/Login",
 
     colors: {
         primary: {
