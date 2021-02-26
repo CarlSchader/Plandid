@@ -3,6 +3,16 @@ import _ from "lodash"
 import config from './config';
 import { DateTime } from 'luxon';
 
+function eventFire(el, etype){
+    if (el.fireEvent) {
+        el.fireEvent('on' + etype);
+    } else {
+        var evObj = document.createEvent('Events');
+        evObj.initEvent(etype, true, false);
+        el.dispatchEvent(evObj);
+    }
+}
+
 function randomColor(seed=null) {
     return `#${Math.floor(Math.random()*16777215).toString(16)}`;
 }
@@ -166,7 +176,7 @@ function executeQuery(query=null, afterQuery=null) {
 
 // onResponse takes a response argument.
 function sendRequest(path, data, onResponse=function(res) {if (res.data !== 0) window.alert(res.data)}) {
-    axios.post(path, data, {baseURL: config.url, withCredentials: true}).then(res => res.data === -1 ? window.location.reload() : onResponse(res));
+    axios.post(path, data, {baseURL: config.url, withCredentials: false}).then(res => res.data === -1 ? window.location.reload() : onResponse(res));
 }
 
 function variantFromCategory(category, defaultVariant="") {
@@ -332,6 +342,7 @@ function rruleObject(rruleString=null) {
 }
 
 export {
+    eventFire,
     executeQuery,
     sendRequest,
     categoryMap,

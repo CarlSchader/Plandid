@@ -13,9 +13,11 @@ import FormControl from "@material-ui/core/FormControl";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Radio from "@material-ui/core/Radio";
 import RadioGroup from "@material-ui/core/RadioGroup";
+import {overflow} from "@material-ui/system";
+import {spacing} from "@material-ui/system"
 
-const useStyles = makeStyles(theme => ({
-    dialogCard: {
+const useStyles = makeStyles(() => ({
+    dialog: {
         padding: "2rem" 
     },
     deleteButton: {
@@ -30,6 +32,8 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
     const [category, setCategory] = useState(info.event.extendedProps.category);
     const classes = useStyles();
 
+    
+    
     let id = "";
     if (info.event.extendedProps.rrule) {
         id = info.event.groupId;
@@ -97,15 +101,14 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
             </div>
         );
     }
-
+//DEBUG changed TextField prop defaultValue from ={newName} to ="New Task"
     return (
         <Dialog onClose={() => setOpen(false)} open={open}>
             <DialogTitle>
-                <TextField onChange={e => setNewName(e.target.value)} defaultValue={newName} />
+                <TextField onChange={e => setNewName(e.target.value)} defaultValue="New Task" />
                 <Button className={classes.deleteButton} onClick={deleteEvent} variant="outlined" color="primary">Delete</Button>
             </DialogTitle>
-            <Card elevation={3} className={classes.dialogCard}>
-                <form noValidate autoComplete="off">
+                <form noValidate autoComplete="off" className={classes.dialog}>
                     <div>
                         <CategoryPicker selectedCategories={{[category]: ""}} onSelect={setCategory} onDeselect={() => setCategory(null)}/>
                     </div>
@@ -116,7 +119,6 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
                         <Button onClick={onApply} variant="contained" color="primary">Apply</Button>
                     </div>
                 </form>
-            </Card>
         </Dialog>
     );
 }

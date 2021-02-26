@@ -25,6 +25,16 @@
         origin: true,
         credentials: true
     })); // These cors options are necessary to recieve cookies from axios.
+
+    // // Custom CORS (not working)
+    // app.options("/*", function(req, res, next){
+    //     res.header('Access-Control-Expose-Headers', 'ETAG');
+    //     res.header('Access-Control-Allow-Credentials', 'true');
+    //     res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    //     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    //     res.header('Access-Control-Allow-Headers', '*');
+    //     res.sendStatus(200);
+    //   });
     
     // Webhooks go here. (notice this is before bodyParser.)
     app.use("/webhooks", require("./routes/webhooks"));

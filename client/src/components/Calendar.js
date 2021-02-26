@@ -8,22 +8,36 @@ import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
 import luxonPlugin from '@fullcalendar/luxon';
 
-import {rruleString, rruleObject, copyObject, localDate} from "../utilities";
+import {rruleString, rruleObject, copyObject, localDate, eventFire} from "../utilities";
 import {millisecondMap} from "../constants";
 import config from "../config";
 import EventPopover from './EventPopover';
 
 const minSelectMinutes = 10;
 const selectMinutesModulus = 5;
+let newEvents = [];
+let mirrorElements = [];
 
 function Calendar({tier=""}) {
     const calendarRef = useRef(null);
     const [state, setState] = useState(1);
     const [selectedDate, setSelectedDate] = useState(DateTime.local());
     const {0: plans} = useState([]);
-    const [newEvents, setNewEvents] = useState([]);
     const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
     const [currentInfo, setCurrentInfo] = useState(null);
+
+    function setNewEvents(events) {
+        newEvents = [];
+        let api = calendarRef.current.getApi();
+        let calendarEvents = api.getEvents();
+        for (let i = 0; i < calendarEvents.length; i++) {
+            calendarEvents[i].remove();
+        }
+        for (let i = 0; i < events.length; i++) {
+            newEvents.push(events[i]);
+            addEventToCalendar(events[i], i);
+        }
+    }
 
     const states = {
         0: {
@@ -44,8 +58,9 @@ function Calendar({tier=""}) {
             isEditable: true,
             headerToolbar: {start: "monthButton", center: "title", end: "currentWeek prev,next"},
             selectable: true,
-            dateClick: () => {},
+            dateClick: info => {console.log(info);},
             select: async function(info) {
+                console.log(calendarRef);
                 const start = DateTime.fromISO(info.startStr).toMillis();
                 let distance = Math.max(DateTime.fromISO(info.endStr).toMillis() - start, minSelectMinutes * millisecondMap.minute);
                 distance = distance - (distance % (selectMinutesModulus * millisecondMap.minute));
@@ -72,7 +87,7 @@ function Calendar({tier=""}) {
             isEditable: true,
             headerToolbar: {start: "weekButton", center: "title", end: "currentDay prev,next"},
             selectable: true,
-            dateClick: () => {},
+            dateClick: info => {},
             select: async function(info) {
                 let dt = DateTime.fromISO(info.dateStr);
                 let newEvent = {
@@ -95,59 +110,42 @@ function Calendar({tier=""}) {
         }
     };
 
-    // eslint-disable-next-line
-    // useEffect(function() {
-
-    // }, [newEvents, plans]);
-
+    // TODO: When we query backend for plans, use this function to populate calendar.
     function getCalendarEvents() {
-        let events = [];
-        for (let i = 0; i < plans.length; i++) {
-            let titleString = `${plans[i].taskName}: ${plans[i].personName}`;
-            let backgroundColor = config.colors.primary.main;
-            let borderColor = config.colors.primary.main;
-            let textColor = config.colors.primary.contrastText;
-            events.push({
-                id: i.toString(),
-                title: titleString,
-                start: DateTime.fromMillis(plans[i].start).toISO(),
-                end: DateTime.fromMillis(plans[i].end).toISO(),
-                backgroundColor: backgroundColor,
-                borderColor: borderColor,
-                textColor: textColor,
-                extendedProps: plans[i]
-            });
-        }
         for (let i = 0; i < newEvents.length; i++) {
             const newEvent = newEvents[i];
-            if (newEvent.rrule) {
-                events.push({
-                    backgroundColor: config.colors.primary.main,
-                    borderColor: config.colors.primary.main,
-                    textColor: config.colors.primary.contrastText,
-                    groupId: "n" + i.toString(),
-                    title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
-                    dtstart: localDate(newEvent.start).toISO(),
-                    duration: {milliseconds: Interval.fromDateTimes(localDate(newEvent.start), localDate(newEvent.end)).length("milliseconds")},
-                    rrule: newEvent.rrule,
-                    extendedProps: newEvent
-                });
-            }
-            else {
-                events.push({
-                    backgroundColor: config.colors.primary.main,
-                    borderColor: config.colors.primary.main,
-                    textColor: config.colors.primary.contrastText,
-                    id: "n" + i.toString(),
-                    title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
-                    start: localDate(newEvent.start).toISO(),
-                    end: localDate(newEvent.end).toISO(),
-                    extendedProps: newEvent
-                });
-            }
+            addEventToCalendar(newEvent);
         }
-        return events;
-    }    
+    }
+
+    function addEventToCalendar(newEvent, index) {
+        let api = calendarRef.current.getApi();
+        if (newEvent.rrule) {
+            api.addEvent({
+                backgroundColor: config.colors.primary.main,
+                borderColor: config.colors.primary.main,
+                textColor: config.colors.primary.contrastText,
+                groupId: "n" + index.toString(),
+                title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
+                dtstart: localDate(newEvent.start).toISO(),
+                duration: {milliseconds: Interval.fromDateTimes(localDate(newEvent.start), localDate(newEvent.end)).length("milliseconds")},
+                rrule: newEvent.rrule,
+                extendedProps: newEvent
+            });
+        }
+        else {
+            api.addEvent({
+                backgroundColor: config.colors.primary.main,
+                borderColor: config.colors.primary.main,
+                textColor: config.colors.primary.contrastText,
+                id: "n" + index.toString(),
+                title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
+                start: localDate(newEvent.start).toISO(),
+                end: localDate(newEvent.end).toISO(),
+                extendedProps: newEvent
+            });
+        }
+    }
 
     function changeState(newState, nextDate) {
         if (newState in states) {
@@ -185,8 +183,7 @@ function Calendar({tier=""}) {
         }
         switch (idLetter) {
             case 'n':
-                let events = copyObject(newEvents);
-                events[id] = {
+                newEvents[id] = {
                     start: DateTime.fromISO(event.startStr).toMillis(),
                     end: DateTime.fromISO(event.endStr).toMillis(),
                     name: event.title,
@@ -194,19 +191,24 @@ function Calendar({tier=""}) {
                     timezone: event.extendedProps.zoneName,
                     rrule: rrule
                 }
-                setNewEvents(events);
                 break;
             default:
                 break;
         }
     }
 
-    // function handleMirror(info) {
-    //     info.el.style.backgroundColor = config.colors.primary.main;
-    //     info.el.style.borderColor = config.colors.primary.main;
-    //     info.el.style.textColor = config.colors.primary.contrastText;
-    //     document.activeElement.blur();
-    // }
+    function handleMirror(info) {
+        info.el.style.backgroundColor = config.colors.primary.main;
+        info.el.style.borderColor = config.colors.primary.main;
+        info.el.style.textColor = config.colors.primary.contrastText;
+        mirrorElements.push(info.el);
+
+        info.el.addEventListener("mouseup", () => {
+            for (let i = 0; i < mirrorElements.length; i++) {
+                mirrorElements[i].remove();
+            }
+        });
+    }
 
     function dialogJsx() {
         if (currentInfo) {
@@ -231,7 +233,7 @@ function Calendar({tier=""}) {
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin, luxonPlugin]}
             timeZone={DateTime.local().zoneName}
             initialView={states[state].view}
-            events={getCalendarEvents()}
+            // events={getCalendarEvents()}
             initialDate={selectedDate.toISO()}
             firstDay={states[state].firstDay}
             eventResizableFromStart={true}
@@ -248,7 +250,10 @@ function Calendar({tier=""}) {
             contentHeight={states[state].contentHeight}
             height={states[state].height}
 
-            // eventDidMount={info => {if (info.isMirror) handleMirror(info)}}
+            eventDidMount={info => {
+                if (info.isMirror) {
+                    handleMirror(info);
+            }}}
             eventDrop={onCalendarEventChange}
             eventResize={onCalendarEventChange}
 
