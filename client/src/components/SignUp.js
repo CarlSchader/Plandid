@@ -140,7 +140,7 @@ export default function SignUp(props) {
           </Grid> */}
         </form>
       </div>
-      <Box mt={5}>
+      <Box mt={3}>
         <Copyright />
       </Box>
     </Container>
