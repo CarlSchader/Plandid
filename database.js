@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 const { mongodbConfig } = require('./config');
 const { rangeMerge, overlapSearch } = require('./algorithm');
-const { makeID, sortRangedObjectArray, weekMillis } = require('./utilities');
+const { makeID, sortRangedObjectArray } = require('./utilities');
 
 const names = mongodbConfig.collectionNames;
 
@@ -37,21 +37,9 @@ function peopleSchema(userID, scheduleName) {
     return {userID: userID, scheduleName: scheduleName, people: {}};
 }
 
-// function tasksSchema(userID, scheduleName) {
-//     return {userID: userID, scheduleName: scheduleName, tasks: {}};
-// }
-
 function categoriesSchema(userID, scheduleName) {
     return {userID: userID, scheduleName: scheduleName, categories: {}}
 }
-
-// function weekSchema(userID, scheduleName) {
-//     return {userID: userID, scheduleName: scheduleName, week: []};
-// }
-
-// function exceptionsSchema(userID, scheduleName) {
-//     return {userID: userID, scheduleName, exceptions: []};
-// }
 
 function eventsSchema(userID, scheduleName) {
     return {userID: userID, scheduleName: scheduleName, events: []}
@@ -66,6 +54,7 @@ function onlineSchema(sessionID, userID, email) {
 }
 
 
+
 // Database subfield schemas
 function people_personSchema(categories) {
 	return {categories: categories, availabilities: []}
@@ -75,33 +64,14 @@ function people_availabilitySchema(startTime, endTime, timezone, rrule) {
 	return {start: startTime, end: endTime, timezone: timezone, rrule: rrule};
 }
 
-// function people_exceptionSchema(startTime, endTime, available, description) {
-// 	return {start: startTime, end: endTime, available: available, description: description};
-// }
-
-// function tasks_taskSchema(category) {
-// 	return category;
-// }
-
-// function week_jobSchema(startTime, endTime, taskName, category) {
-// 	return {start: startTime, end: endTime, taskName: taskName, category: category};
-// }
-
-// function exceptions_exceptionSchema(startTime, endTime, description, jobs) {
-// 	return {start: startTime, end: endTime, description: description, jobs: jobs};
-// }
-
-// function exceptions_jobSchema(startTime, endTime, taskName, category) {
-// 	return {start: startTime, end: endTime, taskName: taskName, category: category};
-// }
-
-function events_eventSchema(start, end, name, category, timezone, rrule) {
-    return {start: start, end: end, name: name, category: category, timezone: timezone, rrule: rrule}
+function events_eventSchema(start, end, name, category, rrule) {
+    return {start: start, end: end, name: name, category: category, rrule: rrule}
 }
 
 function plans_planSchema(startTime, endTime, personName, eventName, category) {
 	return {start: startTime, end: endTime, personName: personName, eventName: eventName, category: category};
 }
+
 
 
 // Base level database functions
@@ -197,18 +167,6 @@ async function createPeopleRecord(userID, scheduleName) {
 	return await create(names.people, peopleSchema(userID, scheduleName));
 }
 
-// async function createTasksRecord(userID, scheduleName) {
-// 	return await create(names.tasks, tasksSchema(userID, scheduleName));
-// }
-
-// async function createWeekRecord(userID, scheduleName) {
-// 	return await create(names.week, weekSchema(userID, scheduleName));
-// }
-
-// async function createExceptionsRecord(userID, scheduleName) {
-// 	return await create(names.exceptions, exceptionsSchema(userID, scheduleName));
-// }
-
 async function createPlansRecord(userID, scheduleName) {
 	return await create(names.plans, plansSchema(userID, scheduleName));
 }
@@ -226,9 +184,6 @@ async function createAccount(email, password, tier) {
 	let scheduleName = "New Schedule";
 	await createScheduleRecord(userID, scheduleName);
 	await createPeopleRecord(userID, scheduleName);
-	// await createTasksRecord(userID, scheduleName);
-	// await createWeekRecord(userID, scheduleName);
-    // await createExceptionsRecord(userID, scheduleName);
     await createEventsRecord(userID, scheduleName);
     await createCategoriesRecord(userID, scheduleName);
 	await createPlansRecord(userID, scheduleName);
@@ -253,6 +208,8 @@ async function createOnlineRecord(userID) {
 	}
 }
 
+
+
 // Remove data functions
 async function removeEmailValidationRecord(key) {
 	await remove(names.emailValidation, {key: key});
@@ -270,18 +227,6 @@ async function removePeopleRecord(userID, scheduleName) {
 	await remove(names.people, {userID: userID, scheduleName: scheduleName});
 }
 
-// async function removeTasksRecord(userID, scheduleName) {
-// 	await remove(names.tasks, {userID: userID, scheduleName: scheduleName});
-// }
-
-// async function removeWeekRecord(userID, scheduleName) {
-// 	await remove(names.week, {userID: userID, scheduleName: scheduleName});
-// }
-
-// async function removeExceptionsRecord(userID, scheduleName) {
-// 	await remove(names.exceptions, {userID: userID, scheduleName: scheduleName});
-// })
-
 async function removePlansRecord(userID, scheduleName) {
 	await remove(names.plans, {userID: userID, scheduleName: scheduleName});
 }
@@ -295,6 +240,7 @@ async function clearDatabase() {
         await removeMany(names[key], {});
     }
 }
+
 
 
 // Read data functions
@@ -321,18 +267,6 @@ async function readScheduleRecord(userID, scheduleName) {
 async function readPeopleRecord(userID, scheduleName) {
 	return await read(names.people, {userID: userID, scheduleName: scheduleName});
 }
-
-// async function readTasksRecord(userID, scheduleName) {
-// 	return await read(names.tasks, {userID: userID, scheduleName: scheduleName});
-// }
-
-// async function readWeekRecord(userID, scheduleName) {
-// 	return await read(names.week, {userID: userID, scheduleName: scheduleName});
-// }
-
-// async function readExceptionsRecord(userID, scheduleName) {
-// 	return await read(names.exceptions, {userID: userID, scheduleName: scheduleName});
-// }
 
 async function readEventsRecord(userID, scheduleName) {
     return await read(names.events, {userID: userID, scheduleName: scheduleName});
@@ -363,6 +297,8 @@ async function getSessionID(email) {
 async function readRandomScheduleRecord(userID) {
     return await read(names.schedule, {userID: userID});
 }
+
+
 
 // Update data functions
 async function isLoggedIn(sessionID) {
@@ -413,9 +349,6 @@ async function changeUserDataStripeCustomerId(userID, stripeCustomerId) {
 async function changeScheduleName(userID, oldScheduleName, newScheduleName) {
 	await update(names.schedule, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
 	await update(names.people, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
-	// await update(names.tasks, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
-	// await update(names.week, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
-    // await update(names.exceptions, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
     await update(names.events, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
     await update(names.categories, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
 	await update(names.plans, {userID: userID, scheduleName: oldScheduleName}, {$set: {scheduleName: newScheduleName}});
@@ -436,24 +369,12 @@ async function removePerson(userID, scheduleName, name) {
 async function changePersonName(userID, scheduleName, oldName, newName) {
 	let person = (await readPeopleRecord(userID, scheduleName)).people[oldName];
 	await removePerson(userID, scheduleName, oldName);
-	await addPerson(userID, scheduleName, newName, categories=person.categories, week=person.week, exceptions=person.exceptions);
+	await addPerson(userID, scheduleName, newName, categories=person.categories);
 }
 
 async function changePersonCategories(userID, scheduleName, name, newCategories) {
 	let query = {$set: {}};
 	query["$set"][`people.${name}.categories`] = newCategories;
-	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function changePersonWeek(userID, scheduleName, name, newWeek) {
-	let query = {$set: {}};
-	query["$set"][`people.${name}.week`] = newWeek;
-	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function changePersonExceptions(userID, scheduleName, name, newExceptions) {
-	let query = {$set: {}};
-	query["$set"][`people.${name}.exceptions`] = newExceptions;
 	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
 
@@ -463,12 +384,6 @@ async function addPersonAvailability(userID, scheduleName, name, utcStart, utcEn
     query["$push"][`people.${name}.availabilities`] = {$each: [newAvailability], $sort: {start: 1}};
     await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
 }
-
-// async function addPersonException(userID, scheduleName, name, utcStart, utcEnd, available, description) {
-//     let exceptions = (await readPeopleRecord(userID, scheduleName)).people[name].exceptions;
-// 	let newExceptions = rangeMerge(people_exceptionSchema(utcStart, utcEnd, available, description), exceptions, "start", "end");
-// 	await changePersonExceptions(userID, scheduleName, name, newExceptions);
-// }
 
 async function changePersonAvailability(userID, scheduleName, name, index, utcStart, utcEnd, timezone, rrule) {
     const newAvailability = people_availabilitySchema(utcStart, utcEnd, timezone, rrule);
@@ -486,172 +401,6 @@ async function removePersonAvailability(userID, scheduleName, name, index) {
 	let query = {$set: {}};
 	query["$set"][`people.${name}.availabilities`] = availabilities;
 	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function removePersonException(userID, scheduleName, name, index) {
-	let exceptions = (await readPeopleRecord(userID, scheduleName)).people[name].exceptions;
-	exceptions.splice(index, 1);
-	let query = {$set: {}};
-	query["$set"][`people.${name}.exceptions`] = exceptions;
-	await update(names.people, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function addTask(userID, scheduleName, name, category) {
-	let query = {$set: {}};
-	query["$set"][`tasks.${name}`] = tasks_taskSchema(category);
-	await update(names.tasks, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function removeTask(userID, scheduleName, name) {
-	let query = {$unset: {}};
-	query["$unset"][`tasks.${name}`] = "";
-	await update(names.tasks, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function changeTaskName(userID, scheduleName, oldName, newName) {
-	let category = (await readTasksRecord(userID, scheduleName)).tasks[oldName];
-	await removeTask(userID, scheduleName, oldName);
-	await addTask(userID, scheduleName, newName, category);
-}
-
-async function changeTaskCategory(userID, scheduleName, name, category) {
-	let query = {$set: {}};
-	query["$set"][`tasks.${name}`] = category;
-	await update(names.tasks, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function addWeekJob(userID, scheduleName, utcStart, utcEnd, taskName, category) {
-    let normalizedStart = weekMillis(utcStart);
-    let normalizedEnd = weekMillis(utcEnd);
-    let newJob = week_jobSchema(normalizedStart, normalizedEnd, taskName, category);
-    let jobs = (await readWeekRecord(userID, scheduleName)).week;
-    jobs.push(newJob);
-    jobs = sortRangedObjectArray(jobs);
-	await update(names.week, {userID: userID, scheduleName: scheduleName}, {$set: {week: jobs}});
-}
-
-async function removeWeekJob(userID, scheduleName, index) {
-	let jobs = (await readWeekRecord(userID, scheduleName)).week;
-	jobs.splice(index, 1);
-	await update(names.week, {userID: userID, scheduleName: scheduleName}, {$set: {week: jobs}});
-}
-
-async function addException(userID, scheduleName, utcStart, utcEnd, description, jobs) {
-    let exceptions = (await readExceptionsRecord(userID, scheduleName)).exceptions;
-    let newException = exceptions_exceptionSchema(utcStart, utcEnd, description, jobs);
-    if (!overlapSearch(newException, exceptions, "start", "end")) {
-        exceptions.push(newException);
-        exceptions = sortRangedObjectArray(exceptions);
-        await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, {$set: {exceptions: exceptions}});
-    }
-}
-
-async function removeException(userID, scheduleName, index) {
-	let exceptions = (await readExceptionsRecord(userID, scheduleName)).exceptions;
-	exceptions.splice(index, 1);
-	await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, {$set: {exceptions: exceptions}});
-}
-
-async function exceptionChangeDescription(userID, scheduleName, index, newDescription) {
-	let query = {$set: {}};
-	query["$set"][`exceptions.${index}.description`] = newDescription;
-	await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, query);
-}
-
-async function exceptionShiftDate(userID, scheduleName, index, newUtcStart) {
-    let exceptions = (await readExceptionsRecord(userID, scheduleName)).exceptions;
-    const difference = newUtcStart - exceptions[index].start;
-    let jobs = exceptions[index].jobs.map(function(job) {return exceptions_jobSchema(
-        job.start + difference, 
-        job.end + difference,
-        job.taskName,
-        job.category
-    )});
-    exceptions[index].start = newUtcStart;
-    exceptions[index].end = exceptions[index].end + difference;
-    exceptions[index].jobs = jobs;
-    exceptions = sortRangedObjectArray(exceptions);
-	await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, {$set: {exceptions: exceptions}});
-}
-
-async function exceptionChangeStart(userID, scheduleName, index, newUtcStart) {
-    let exceptions = (await readExceptionsRecord(userID, scheduleName)).exceptions;
-    if (newUtcStart >= exceptions[index].end) {
-        await removeException(userID, scheduleName, index);
-    }
-    else {
-        let jobs = exceptions[index].jobs;
-        let newJobs = [];
-        for (let i = 0; i < jobs.length; i++) {
-            if (jobs[i].end > newUtcStart) {
-                if (jobs[i].start < newUtcStart) {
-                    newJobs.push(exceptions_jobSchema(newUtcStart, jobs[i].end, jobs[i].taskName, jobs[i].category));
-                }
-                else {
-                    newJobs.push(jobs[i]);
-                }
-            }
-        }
-        exceptions[index].start = newUtcStart;
-        exceptions[index].jobs = newJobs;
-        exceptions = sortRangedObjectArray(exceptions);
-        await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, {$set: {exceptions: exceptions}});
-    }
-}
-
-async function exceptionChangeEnd(userID, scheduleName, index, newUtcEnd) {
-    let exceptions = (await readExceptionsRecord(userID, scheduleName)).exceptions;
-    if (newUtcEnd <= exceptions[index].start) {
-        await removeException(userID, scheduleName, index);
-    }
-    else {
-        let jobs = exceptions[index].jobs;
-        let newJobs = [];
-        for (let i = 0; i < jobs.length; i++) {
-            if (jobs[i].start < newUtcEnd) {
-                if (jobs[i].end > newUtcEnd) {
-                    newJobs.push(exceptions_jobSchema(jobs[i].start, newUtcEnd, jobs[i].taskName, jobs[i].category));
-                }
-                else {
-                    newJobs.push(jobs[i]);
-                }
-            }
-        }
-        exceptions[index].start = newUtcStart;
-        exceptions[index].jobs = newJobs;
-        await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, {$set: {exceptions: exceptions}});
-    }
-}
-
-async function exceptionAddJob(userID, scheduleName, index, utcStart, utcEnd, taskName, category) {
-    if (utcStart < utcEnd) {
-        let exception = (await readExceptionsRecord(userID, scheduleName)).exceptions[index];
-        let newStart = utcStart;
-        let newEnd = utcEnd;
-        if (newStart < exception.start) {
-            newStart = exception.start;
-        }
-        if (newEnd > exception.end) {
-            newEnd = exception.end;
-        }
-        let newJob = exceptions_jobSchema(newStart, newEnd, taskName, category);
-        let jobs = (await readExceptionsRecord(userID, scheduleName)).exceptions[index].jobs;
-        jobs.push(newJob);
-
-        jobs = sortRangedObjectArray(jobs);
-        let query = {$set: {}};
-        query["$set"][`exceptions.${index}.jobs`] = jobs;
-        await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, query);
-    }
-}
-
-async function exceptionRemoveJob(userID, scheduleName, index, jobIndex) {
-	let exception = (await readExceptionsRecord(userID, scheduleName)).exceptions[index];
-	exception.jobs.splice(jobIndex, 1);
-	query = {$set: {}};
-	query["$set"][`exceptions.${index}`] = exception;
-	await update(names.exceptions, {userID: userID, scheduleName: scheduleName}, query);
-
 }
 
 async function addPlan(userID, scheduleName, utcStart, utcEnd, personName, taskName, category) {
@@ -688,6 +437,25 @@ async function addCategory(userID, scheduleName, category) {
     await update(names.categories, {userID: userID, scheduleName: scheduleName}, query);
 }
 
+async function addEvent(userID, scheduleName, start, end, name, category, rrule) {
+    const updatedEvent = events_eventSchema(start, end, name, category, rrule);
+    await update(names.events, {userID, scheduleName}, {$push: {events: updatedEvent}});
+}
+
+async function updateEvent(userID, scheduleName, index, start, end, name, category, rrule) {
+    const updatedEvent = events_eventSchema(start, end, name, category, rrule);
+    let query = {$set: {}};
+    query["$set"][`events.${index}`] = updatedEvent;
+    await update(names.events, {userID, scheduleName}, query);
+}
+
+async function deleteEvent(userID, scheduleName, index) {
+    let query = {$unset: {}};
+    query["$unset"][`events.${index}`] = 1;
+    await update(names.events, {userID, scheduleName}, query);
+    await update(names.events, {userID, scheduleName}, {$pull: {events: null}});
+}
+
 // Stripe
 async function readStripeCustomerID(userID) {
     const currentRecord = await read(names.stripe, {userID: userID});
@@ -719,7 +487,6 @@ async function createStripeCustomerRecord(userID, customerId) {
 module.exports = {
     connect: connect,
 
-    // Base Level Functions
     create: create,
     read: read,
     
@@ -729,9 +496,6 @@ module.exports = {
 	createUserDataRecord: createUserDataRecord,
 	createScheduleRecord: createScheduleRecord,
 	createPeopleRecord: createPeopleRecord,
-	// createTasksRecord: createTasksRecord,
-	// createWeekRecord: createWeekRecord,
-    // createExceptionsRecord: createExceptionsRecord,
     createEventsRecord: createEventsRecord,
     createCategoriesRecord: createCategoriesRecord,
 	createPlansRecord: createPlansRecord,
@@ -742,11 +506,6 @@ module.exports = {
 	removeEmailValidationRecord: removeEmailValidationRecord,
 	removeScheduleRecord: removeScheduleRecord,
 	removePeopleRecord: removePeopleRecord,
-    // removeTasksRecord: removeTasksRecord,
-	// removeWeekRecord: removeWeekRecord,
-    // removeExceptionsRecord: removeExceptionsRecord,
-    // removeEventsRecord: removeEventsRecord,
-    // removeCategoriesRecord: removeCategoriesRecord,
 	removePlansRecord:  removePlansRecord,
     removeOnlineRecord: removeOnlineRecord,
     clearDatabase: clearDatabase,
@@ -757,9 +516,6 @@ module.exports = {
 	readEmailValidationRecordFromEmail: readEmailValidationRecordFromEmail,
 	readScheduleRecord: readScheduleRecord,
 	readPeopleRecord: readPeopleRecord,
-	// readTasksRecord: readTasksRecord,
-	// readWeekRecord: readWeekRecord,
-    // readExceptionsRecord: readExceptionsRecord,
     readEventsRecord: readEventsRecord,
     readCategoriesRecord: readCategoriesRecord,
 	readPlansRecord:  readPlansRecord,
@@ -780,32 +536,17 @@ module.exports = {
 	removePerson: removePerson,
 	changePersonName: changePersonName,
 	changePersonCategories: changePersonCategories,
-	changePersonWeek: changePersonWeek,
-	changePersonExceptions: changePersonExceptions,
     addPersonAvailability: addPersonAvailability,
     changePersonAvailability: changePersonAvailability,
-	// addPersonException: addPersonException,
 	removePersonAvailability: removePersonAvailability,
-	removePersonException: removePersonException,
-	addTask: addTask,
-	removeTask: removeTask,
-	changeTaskName: changeTaskName,
-	changeTaskCategory: changeTaskCategory,
-	addWeekJob: addWeekJob,
-	removeWeekJob: removeWeekJob,
-	addException: addException,
-	removeException: removeException,
-    exceptionChangeDescription: exceptionChangeDescription,
-    exceptionShiftDate: exceptionShiftDate, 
-	exceptionChangeStart: exceptionChangeStart,
-	exceptionChangeEnd: exceptionChangeEnd,
-	exceptionAddJob: exceptionAddJob,
-	exceptionRemoveJob: exceptionRemoveJob,
 	addPlan: addPlan,
 	removePlan: removePlan,
 	updatePlans: updatePlans,
     accountExists: accountExists,
     addCategory: addCategory,
+    addEvent: addEvent,
+    updateEvent: updateEvent,
+    deleteEvent: deleteEvent,
     
     // Stripe
     readStripeCustomerID: readStripeCustomerID,

@@ -25,7 +25,7 @@ const useStyles = makeStyles(() => ({
     }
 }));
 
-function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false, setOpen=() => {}}) {
+function EventPopover({info={}, eventsArray=[], updateNewEvent=() => {}, deleteNewEvent=() => {}, open=false, setOpen=() => {}}) {
     const [newName, setNewName] = useState(info.event.extendedProps.name);
     const [rrule, setRRule] = useState(info.event.extendedProps.rrule);
     const [doesRepeat, setDoesRepeat] = useState(info.event.extendedProps.rrule !== null ? true : false);
@@ -50,11 +50,9 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
     function deleteEvent() {
         setOpen(false);
         let idLetter = id[0];
-        let idNumb = parseInt(id[id.length - 1]);
+        let idNumb = parseInt(id.substring(1));
         if (idLetter === 'n') {
-            let eventsCopy = copyObject(eventsArray);
-            eventsCopy.splice(idNumb, 1);
-            setNewEvents(eventsCopy);
+            deleteNewEvent(idNumb);
         }
         info.event.remove();
     }
@@ -62,7 +60,7 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
     function onApply() {
         setOpen(false);
         let idLetter = id[0];
-        let idNumb = parseInt(id[id.length - 1]);
+        let idNumb = parseInt(id.substring(1));
         let newEvent = copyObject(info.event.extendedProps);
         if (idLetter === 'n') {
             newEvent.name = newName;
@@ -72,8 +70,7 @@ function EventPopover({info={}, eventsArray=[], setNewEvents=() => {},open=false
         }
         newEvent.rrule = rrule;
         newEvent.category = category;
-        eventsArray[idNumb] = newEvent;
-        setNewEvents(eventsArray);
+        updateNewEvent(idNumb, newEvent);
     }
 
     function repeatingJsx() {

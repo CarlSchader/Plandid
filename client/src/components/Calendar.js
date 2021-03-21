@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { DateTime, Interval } from "luxon";
 import FullCalendar from '@fullcalendar/react'
@@ -8,7 +8,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
 import luxonPlugin from '@fullcalendar/luxon';
 
-import {rruleString, rruleObject, copyObject, localDate, eventFire} from "../utilities";
+import {rruleString, rruleObject, localDate, executeQuery} from "../utilities";
 import {millisecondMap} from "../constants";
 import config from "../config";
 import EventPopover from './EventPopover';
@@ -20,24 +20,20 @@ let mirrorElements = [];
 
 function Calendar({tier=""}) {
     const calendarRef = useRef(null);
+    const [query, setQuery] = useState({
+        path: "/events/getEvents",
+        onResponse: res => {
+            newEvents = res.data;
+            refreshCalendar();
+        }
+    });
     const [state, setState] = useState(1);
     const [selectedDate, setSelectedDate] = useState(DateTime.local());
     const {0: plans} = useState([]);
     const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
     const [currentInfo, setCurrentInfo] = useState(null);
 
-    function setNewEvents(events) {
-        newEvents = [];
-        let api = calendarRef.current.getApi();
-        let calendarEvents = api.getEvents();
-        for (let i = 0; i < calendarEvents.length; i++) {
-            calendarEvents[i].remove();
-        }
-        for (let i = 0; i < events.length; i++) {
-            newEvents.push(events[i]);
-            addEventToCalendar(events[i], i);
-        }
-    }
+    useEffect(executeQuery(query));
 
     const states = {
         0: {
@@ -58,9 +54,8 @@ function Calendar({tier=""}) {
             isEditable: true,
             headerToolbar: {start: "monthButton", center: "title", end: "currentWeek prev,next"},
             selectable: true,
-            dateClick: info => {console.log(info);},
+            dateClick: info => {},
             select: async function(info) {
-                console.log(calendarRef);
                 const start = DateTime.fromISO(info.startStr).toMillis();
                 let distance = Math.max(DateTime.fromISO(info.endStr).toMillis() - start, minSelectMinutes * millisecondMap.minute);
                 distance = distance - (distance % (selectMinutesModulus * millisecondMap.minute));
@@ -69,12 +64,10 @@ function Calendar({tier=""}) {
                     end: start + distance,
                     name: "New Task",
                     category: null,
-                    timezone: DateTime.local().zoneName,
+                    // timezone: DateTime.local().zoneName,
                     rrule: null
                 };
-                let events = copyObject(newEvents);
-                events.push(newEvent);
-                setNewEvents(events);
+                addNewEvent(newEvent);
             },
             slotDuration: "00:15:00",
             snapDuration: `00:05:00`,
@@ -95,12 +88,10 @@ function Calendar({tier=""}) {
                     end: dt.plus({hours: 1}).toMillis(),
                     name: "New Task",
                     category: null,
-                    timezone: DateTime.local().zoneName,
+                    // timezone: DateTime.local().zoneName,
                     rrule: null
                 };
-                let events = copyObject(newEvents);
-                events.push(newEvent);
-                setNewEvents(events);
+                addNewEvent(newEvent);
             },
             slotDuration: "00:15:00",
             snapDuration: `00:05:00`,
@@ -110,22 +101,48 @@ function Calendar({tier=""}) {
         }
     };
 
-    // TODO: When we query backend for plans, use this function to populate calendar.
-    function getCalendarEvents() {
-        for (let i = 0; i < newEvents.length; i++) {
-            const newEvent = newEvents[i];
-            addEventToCalendar(newEvent);
+    function refreshCalendar() {
+        clearCalendarEvents();
+        for(let i = 0; i < newEvents.length; i++) {
+            addEventToCalendar(newEvents[i], `n${i}`);
         }
     }
 
-    function addEventToCalendar(newEvent, index) {
+    function addNewEvent(newEvent) {
+        newEvents.push(newEvent);
+        refreshCalendar();
+        executeQuery({
+            path: "events/addEvent",
+            data: {event: newEvent}
+        })();
+    }
+
+    function updateNewEvent(index, updatedEvent) {
+        newEvents[index] = updatedEvent;
+        refreshCalendar();
+        executeQuery({
+            path: "events/updateEvent",
+            data: {index: index, event: updatedEvent}
+        })();
+    }
+
+    function deleteNewEvent(index) {
+        newEvents.splice(index, 1);
+        refreshCalendar();
+        executeQuery({
+            path: "events/deleteEvent",
+            data: {index: index}
+        })();
+    }
+
+    function addEventToCalendar(newEvent, id) {
         let api = calendarRef.current.getApi();
         if (newEvent.rrule) {
             api.addEvent({
                 backgroundColor: config.colors.primary.main,
                 borderColor: config.colors.primary.main,
                 textColor: config.colors.primary.contrastText,
-                groupId: "n" + index.toString(),
+                groupId: id,
                 title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
                 dtstart: localDate(newEvent.start).toISO(),
                 duration: {milliseconds: Interval.fromDateTimes(localDate(newEvent.start), localDate(newEvent.end)).length("milliseconds")},
@@ -138,12 +155,19 @@ function Calendar({tier=""}) {
                 backgroundColor: config.colors.primary.main,
                 borderColor: config.colors.primary.main,
                 textColor: config.colors.primary.contrastText,
-                id: "n" + index.toString(),
+                id: id,
                 title: newEvent.name + (newEvent.category ? ": " + newEvent.category : ""),
                 start: localDate(newEvent.start).toISO(),
                 end: localDate(newEvent.end).toISO(),
                 extendedProps: newEvent
             });
+        }
+    }
+
+    function clearCalendarEvents() {
+        let events = calendarRef.current.getApi().getEvents();
+        for (let i = 0; i < events.length; i++) {
+            events[i].remove();
         }
     }
 
@@ -169,27 +193,38 @@ function Calendar({tier=""}) {
         let id = -1;
         const difference = DateTime.fromISO(event.startStr).toMillis() - localDate(event.extendedProps.start).toMillis();
         let rrule = event.extendedProps.rrule;
-        let rruleObj = rruleObject(rrule);
         if (event.groupId) {
+            let rruleObj = rruleObject(rrule);
             idLetter = event.groupId[0];
-            id = parseInt(event.groupId[1]);
+            id = parseInt(event.groupId.substring(1));
             rruleObj.start = rruleObj.start.plus(difference);
             if (rruleObj.until) rruleObj.until = rruleObj.until.plus(difference);
             rrule = rruleString(rruleObj);
         }
         else {
             idLetter = event.id[0];
-            id = parseInt(event.id[1]);
+            id = parseInt(event.id.substring(1));
         }
+
         switch (idLetter) {
             case 'n':
-                newEvents[id] = {
+                let newEvent = {
                     start: DateTime.fromISO(event.startStr).toMillis(),
                     end: DateTime.fromISO(event.endStr).toMillis(),
                     name: event.title,
                     category: event.extendedProps.category,
-                    timezone: event.extendedProps.zoneName,
+                    // timezone: event.extendedProps.zoneName,
                     rrule: rrule
+                };
+                if (newEvent.rrule) {
+                    updateNewEvent(id, newEvent);
+                }
+                else {
+                    newEvents[id] = newEvent;
+                    executeQuery({
+                        path: "events/updateEvent",
+                        data: {index: id, event: newEvent}
+                    })();
                 }
                 break;
             default:
@@ -216,8 +251,10 @@ function Calendar({tier=""}) {
             open={eventPopoverOpen}
             setOpen={setEventPopoverOpen}
             info={currentInfo} 
-            eventsArray={newEvents} 
-            setNewEvents={setNewEvents}
+            eventsArray={newEvents}
+            addNewEvent={addNewEvent}
+            deleteNewEvent={deleteNewEvent}
+            updateNewEvent={updateNewEvent}
             calendarRef={calendarRef}
             />;
         }
